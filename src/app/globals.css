@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff;     /* white */
+  --foreground: #171717;     /* dark gray for text */
 }
 
 @theme inline {
@@ -11,14 +11,22 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes scrollSlider {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-300%);
   }
 }
 
+.animate-slider {
+  animation: scrollSlider 30s linear infinite;
+}
+
+/* ❌ REMOVE dark mode block entirely */
+
+/* Apply background and font globally */
 body {
   background: var(--background);
   color: var(--foreground);
