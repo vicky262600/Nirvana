@@ -13,7 +13,9 @@ export default function RegisterPage() {
     firstName: '',
     lastName: '',
     email: '',
+    confirmEmail: '',
     password: '',
+    confirmPassword: '',
   });
 
   const [error, setError] = useState('');
@@ -28,11 +30,29 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
 
+    // Validation: confirm email and password
+    if (form.email.trim() !== form.confirmEmail.trim()) {
+      setError('Emails do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          password: form.password,
+        }),
       });
 
       const data = await res.json();
@@ -96,12 +116,36 @@ export default function RegisterPage() {
           </label>
 
           <label className="block mb-4">
+            <span className="block mb-1 font-medium">Confirm Email</span>
+            <input
+              type="email"
+              name="confirmEmail"
+              required
+              value={form.confirmEmail}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </label>
+
+          <label className="block mb-4">
             <span className="block mb-1 font-medium">Password</span>
             <input
               type="password"
               name="password"
               required
               value={form.password}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </label>
+
+          <label className="block mb-4">
+            <span className="block mb-1 font-medium">Confirm Password</span>
+            <input
+              type="password"
+              name="confirmPassword"
+              required
+              value={form.confirmPassword}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

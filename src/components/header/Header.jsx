@@ -9,6 +9,7 @@ import { useSelector } from 'react-redux';
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const items = useSelector((state) => state.cart.items || []);
+  const user = useSelector((state) => state.user.currentUser);
 
   // Compute item count here so it's usable in JSX
   const itemCount = items.reduce((sum, item) => sum + item.selectedQuantity, 0);
@@ -37,10 +38,10 @@ export const Header = () => {
             <Button variant="ghost" size="sm">
               <Search className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="sm">
+            {/* <Button variant="ghost" size="sm">
               <Heart className="h-5 w-5" />
-            </Button>
-            <Link href="/login">
+            </Button> */}
+            <Link href={ user ?"/account" : "/login"}>
               <Button variant="ghost" size="sm">
                 <User className="h-5 w-5" />
               </Button>

@@ -5,10 +5,10 @@ import Link from 'next/link';
 
 const ProductCard = ({ product }) => {
   return (
-    <Link href={`/product/${product.productId}`} className="group block shadow-none hover:shadow-lg transition-shadow bg-white overflow-hidden relative">
+    <Link href={`/product/${product._id}`} className="group block shadow-none hover:shadow-lg transition-shadow bg-white overflow-hidden relative">
       <div className="relative overflow-hidden">
         <img
-          src={product.image}
+          src={product.images[0]}
           alt={product.name}
           className="w-full h-48 sm:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
         />
@@ -29,7 +29,7 @@ const ProductCard = ({ product }) => {
       {/* Product Details */}
       <div className="p-4">
         <h3 className="text-lg mb-1 group-hover:text-gray-700 transition-colors line-clamp-2">
-          {product.name}
+          {product.title}
         </h3>
 
         <div className="flex items-center justify-between">

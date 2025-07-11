@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Truck, RotateCcw, Shield } from 'lucide-react';
-import { products } from '@/data/products';
+// import { products } from '@/data/products';
 
 const ProductDetail = () => {
   const router = useRouter();
@@ -30,11 +30,23 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
 
   useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`/api/products/${productId}`);
+        if (!res.ok) throw new Error('Failed to fetch product');
+        const data = await res.json();
+        setProduct(data);
+        // console.log(product);
+      } catch (err) {
+        console.error('Error fetching product:', err.message);
+      }
+    };
+  
     if (productId) {
-      const foundProduct = products.find((p) => p.productId === parseInt(productId));
-      setProduct(foundProduct);
+      fetchProduct();
     }
   }, [productId]);
+  
 
   useEffect(() => {
     console.log('Current cart items:', items);
@@ -55,13 +67,14 @@ const ProductDetail = () => {
       })
     );
   };
+  console.log(product?.variants.size);
 
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
-          <Link href="/shop">
+          <Link href="/">
             <Button>Back to Shop</Button>
           </Link>
         </div>
@@ -74,18 +87,18 @@ const ProductDetail = () => {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <nav className="mb-8">
-          <Link href="/shop" className="text-gray-500 hover:text-black">
+          <Link href="/" className="text-gray-500 hover:text-black">
             Shop
           </Link>
           <span className="mx-2 text-gray-400">/</span>
-          <span className="text-black">{product.name}</span>
+          <span className="text-black">{product.title}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Image */}
           <div className="space-y-4">
             <img
-              src={product.image}
+              src={product.images}
               alt={product.name}
               className="w-full h-96 lg:h-[600px] object-cover rounded-lg"
             />
@@ -94,7 +107,7 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+              <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-2">
                   {product.isOnSale && product.originalPrice && (
@@ -129,7 +142,7 @@ const ProductDetail = () => {
             </div>
 
             {/* Size Selection */}
-            {product.sizes?.length > 1 && (
+            {product?.variants?.length > 1 && (
               <div>
                 <h3 className="font-medium mb-2">Size</h3>
                 <Select value={selectedSize} onValueChange={setSelectedSize}>
@@ -137,13 +150,13 @@ const ProductDetail = () => {
                     <SelectValue placeholder="Select a size" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border border-gray-200 shadow-md rounded-md">
-                    {product.sizes.map((size) => (
+                    {product?.variants.map((variant) => (
                       <SelectItem
-                        key={size}
-                        value={size}
+                        key={variant._id}
+                        value={variant.size}
                         className="hover:bg-gray-100 px-3 py-2"
                       >
-                        {size}
+                        {variant.size}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -152,18 +165,18 @@ const ProductDetail = () => {
             )}
 
             {/* Color Selection */}
-            {product.colors?.length > 1 && (
+            {product?.variants?.length > 1 && (
               <div>
                 <h3 className="font-semibold mb-2">Color</h3>
                 <div className="flex gap-2">
-                  {product.colors.map((color) => (
+                  {[...new Set(product.variants.map((v) => v.color))].map((color) => (
                     <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`px-4 py-2 border rounded-md ${
-                        selectedColor === color
-                          ? 'border-black bg-black text-white'
-                          : 'border-gray-300 hover:border-gray-400'
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`px-4 py-2 border rounded-md ${
+                      selectedColor === color
+                        ? 'border-black bg-black text-white'
+                        : 'border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       {color}

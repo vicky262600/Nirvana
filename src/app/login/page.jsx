@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useDispatch } from 'react-redux';
+import { setUser } from '@/redux/userSlice'; 
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 
 export default function LoginPage() {
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const [form, setForm] = useState({
     email: '',
@@ -35,11 +38,14 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || 'Login failed');
+      if (!res.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Store user in Redux
+      dispatch(setUser(data.user));
 
+      // Redirect to home
       router.push('/');
     } catch (err) {
       setError(err.message);

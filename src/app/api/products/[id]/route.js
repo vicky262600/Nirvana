@@ -6,7 +6,7 @@ import { verifyJWT } from "@/lib/auth";
 
 export async function GET(req, { params }) {
     await connectDB();
-    const id = await params.id;
+    const id = params.id;
   
   try {
     const product = await Product.findById(id);
