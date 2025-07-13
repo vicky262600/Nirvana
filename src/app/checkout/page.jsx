@@ -38,7 +38,7 @@ const Checkout = () => {
         <main className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-3xl font-bold mb-4">Your Cart is Empty</h1>
           <p className="text-gray-600 mb-8">Add some items before checking out!</p>
-          <Link href="/shop">
+          <Link href="/">
             <button className="bg-black text-white px-6 py-3 rounded">Continue Shopping</button>
           </Link>
         </main>

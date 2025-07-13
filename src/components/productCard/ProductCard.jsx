@@ -5,11 +5,14 @@ import Link from 'next/link';
 
 const ProductCard = ({ product }) => {
   return (
-    <Link href={`/product/${product._id}`} className="group block shadow-none hover:shadow-lg transition-shadow bg-white overflow-hidden relative">
+    <Link
+      href={`/product/${product._id}`}
+      className="group block shadow-none hover:shadow-lg transition-shadow bg-white overflow-hidden relative"
+    >
       <div className="relative overflow-hidden">
         <img
           src={product.images[0]}
-          alt={product.name}
+          alt={product.title}
           className="w-full h-48 sm:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
         />
 
@@ -21,7 +24,7 @@ const ProductCard = ({ product }) => {
 
         {product.isOnSale && (
           <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 text-xs rounded">
-              Sale
+            Sale
           </span>
         )}
       </div>
@@ -33,21 +36,25 @@ const ProductCard = ({ product }) => {
         </h3>
 
         <div className="flex items-center justify-between">
+          {/* Price Section */}
           <div className="flex items-center gap-2">
-            {product.isOnSale && product.originalPrice && (
-              <span className="text-gray-400 line-through text-sm">
-                ${product.originalPrice}
+            {product.isOnSale ? (
+              <>
+                <span className="text-gray-400 line-through text-sm">
+                  ${product.price}
+                </span>
+                <span className="font-bold text-black">
+                  ${product.salePrice}
+                </span>
+              </>
+            ) : (
+              <span className="font-bold text-black">
+                ${product.price}
               </span>
             )}
-            <span
-              className={`font-bold ${
-                product.isOnSale ? 'text-red-600' : 'text-black'
-              }`}
-            >
-              ${product.price}
-            </span>
           </div>
 
+          {/* Rating */}
           {product.rating !== undefined && (
             <div className="flex items-center gap-1">
               <span className="text-yellow-400">★</span>

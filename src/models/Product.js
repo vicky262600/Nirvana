@@ -15,7 +15,8 @@ const ProductSchema = new mongoose.Schema(
     images: { type: [String], required: true },
     categories: { type: [String], default: [] },
     price: { type: Number, required: true },
-    onSale: { type: Boolean, default: false },
+    isOnSale: { type: Boolean, default: false },
+    isNew: { type: Boolean, default: false },
     salePrice: { type: Number, default: 0 },
     variants: {
       type: [VariantSchema],

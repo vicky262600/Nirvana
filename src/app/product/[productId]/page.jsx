@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { addItem } from '@/redux/cartSlice';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
@@ -16,18 +16,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Truck, RotateCcw, Shield } from 'lucide-react';
-// import { products } from '@/data/products';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import Lightbox from 'react-image-lightbox';
+import 'react-image-lightbox/style.css';
 
 const ProductDetail = () => {
-  const router = useRouter();
   const { productId } = useParams();
   const dispatch = useDispatch();
-  const items = useSelector((state) => state.cart.items);
 
+  const [product, setProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [product, setProduct] = useState(null);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -36,38 +41,63 @@ const ProductDetail = () => {
         if (!res.ok) throw new Error('Failed to fetch product');
         const data = await res.json();
         setProduct(data);
-        // console.log(product);
+
+        // Default select first color if available
+        const firstColor = data.variants?.[0]?.color;
+        if (firstColor) setSelectedColor(firstColor);
       } catch (err) {
         console.error('Error fetching product:', err.message);
       }
     };
-  
-    if (productId) {
-      fetchProduct();
-    }
-  }, [productId]);
-  
 
-  useEffect(() => {
-    console.log('Current cart items:', items);
-  }, [items]);
+    if (productId) fetchProduct();
+  }, [productId]);
+
+  // Get all unique sizes and colors
+  const uniqueSizes = product ? [...new Set(product.variants.map(v => v.size))] : [];
+  const uniqueColors = product ? [...new Set(product.variants.map(v => v.color))] : [];
+
+  // Find available quantity for selected size + color
+  const availableVariant = product
+    ? product.variants.find(v => v.size === selectedSize && v.color === selectedColor)
+    : null;
+  const availableQuantity = availableVariant ? availableVariant.quantity : 0;
+
+  // Quantity options capped at min(5, availableQuantity)
+  const quantityOptions = [];
+  const maxQuantity = Math.min(5, availableQuantity);
+  for (let i = 1; i <= maxQuantity; i++) {
+    quantityOptions.push(i);
+  }
+
+  // Check if size is available in selected color
+  const isSizeAvailable = (size) =>
+    product.variants.some(v => v.size === size && v.color === selectedColor && v.quantity > 0);
 
   const handleAddToCart = () => {
-    if (!selectedSize && product.sizes?.length > 1) {
+    if (!selectedSize) {
       alert('Please select a size');
+      return;
+    }
+    if (!selectedColor) {
+      alert('Please select a color');
+      return;
+    }
+    if (quantity > availableQuantity) {
+      alert(`Only ${availableQuantity} items available in selected size and color.`);
       return;
     }
 
     dispatch(
       addItem({
         product,
+        price: product.isOnSale ? product.salePrice : product.price,
         size: selectedSize,
         color: selectedColor,
-        quantity: quantity,
+        quantity,
       })
     );
   };
-  console.log(product?.variants.size);
 
   if (!product) {
     return (
@@ -95,88 +125,128 @@ const ProductDetail = () => {
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Image */}
-          <div className="space-y-4">
-            <img
-              src={product.images}
-              alt={product.name}
-              className="w-full h-96 lg:h-[600px] object-cover rounded-lg"
-            />
+          {/* Product Image Carousel */}
+          <div className="relative space-y-2">
+            <Swiper
+              modules={[Navigation]}
+              spaceBetween={10}
+              slidesPerView={1}
+              navigation={{
+                nextEl: '.next-btn',
+                prevEl: '.prev-btn',
+              }}
+              onSlideChange={(swiper) => setPhotoIndex(swiper.activeIndex)}
+              className="rounded-lg overflow-hidden"
+            >
+              {product.images.map((img, index) => (
+                <SwiperSlide key={index}>
+                  <img
+                    src={img}
+                    alt={`Product ${index + 1}`}
+                    onClick={() => setIsOpen(true)}
+                    className="w-full h-96 lg:h-[600px] object-cover cursor-pointer rounded-lg"
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+
+            {/* Arrows */}
+            <button className="prev-btn absolute top-1/2 -left-4 transform -translate-y-1/2 bg-white shadow-md rounded-full p-2 z-10">
+              &#8592;
+            </button>
+            <button className="next-btn absolute top-1/2 -right-4 transform -translate-y-1/2 bg-white shadow-md rounded-full p-2 z-10">
+              &#8594;
+            </button>
+
+            {/* Slide count */}
+            <div className="text-center text-sm text-gray-500 mt-2">
+              {photoIndex + 1} / {product.images.length}
+            </div>
+
+            {/* Fullscreen Viewer */}
+            {isOpen && (
+              <Lightbox
+                mainSrc={product.images[photoIndex]}
+                nextSrc={product.images[(photoIndex + 1) % product.images.length]}
+                prevSrc={product.images[(photoIndex + product.images.length - 1) % product.images.length]}
+                onCloseRequest={() => setIsOpen(false)}
+                onMovePrevRequest={() =>
+                  setPhotoIndex((photoIndex + product.images.length - 1) % product.images.length)
+                }
+                onMoveNextRequest={() =>
+                  setPhotoIndex((photoIndex + 1) % product.images.length)
+                }
+              />
+            )}
           </div>
 
           {/* Product Info */}
           <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  {product.isOnSale && product.originalPrice && (
-                    <span className="text-gray-400 line-through text-lg">
-                      ${product.originalPrice}
-                    </span>
-                  )}
-                  <span
-                    className={`text-2xl font-bold ${
-                      product.isOnSale ? 'text-red-600' : 'text-black'
-                    }`}
-                  >
-                    ${product.price}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-yellow-400">★</span>
-                  <span className="text-gray-600">
-                    {product.rating} (124 reviews)
-                  </span>
-                </div>
-              </div>
+            <h1 className="text-3xl font-bold">{product.title}</h1>
 
-              {product.isOnSale && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                  <p className="text-red-800 text-sm font-medium">
-                    🔥 Sale: Save $
-                    {((product.originalPrice || 0) - product.price).toFixed(2)}!
-                  </p>
-                </div>
+            <div className="flex items-center gap-4">
+              {product.isOnSale ? (
+                <>
+                  <span className="text-2xl font-bold text-gray-400 line-through">
+                    ${product.price.toFixed(2)}
+                  </span>
+                  <span className="text-2xl font-bold text-black flex items-center gap-1">
+                    ${product.salePrice.toFixed(2)} 
+                  </span>
+                  <span className="ml-2 inline-block text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                    Sale
+                  </span>
+                </>
+              ) : (
+                <span className="text-2xl font-bold text-black">${product.price.toFixed(2)}</span>
               )}
             </div>
 
             {/* Size Selection */}
-            {product?.variants?.length > 1 && (
+            {uniqueSizes.length > 0 && (
               <div>
                 <h3 className="font-medium mb-2">Size</h3>
-                <Select value={selectedSize} onValueChange={setSelectedSize}>
-                  <SelectTrigger className="w-full bg-white border border-gray-300 rounded-md px-3 py-2">
-                    <SelectValue placeholder="Select a size" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-gray-200 shadow-md rounded-md">
-                    {product?.variants.map((variant) => (
-                      <SelectItem
-                        key={variant._id}
-                        value={variant.size}
-                        className="hover:bg-gray-100 px-3 py-2"
+                <div className="flex gap-2 flex-wrap">
+                  {uniqueSizes.map((size) => {
+                    const available = isSizeAvailable(size);
+                    return (
+                      <button
+                        key={size}
+                        disabled={!available}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-4 py-2 border rounded-md ${
+                          selectedSize === size
+                            ? 'border-black bg-black text-white'
+                            : available
+                            ? 'border-gray-300 hover:border-gray-400'
+                            : 'border-gray-300 text-gray-400 line-through cursor-not-allowed'
+                        }`}
                       >
-                        {variant.size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
             {/* Color Selection */}
-            {product?.variants?.length > 1 && (
+            {uniqueColors.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2">Color</h3>
+                <h3 className="font-medium mb-2">Color</h3>
                 <div className="flex gap-2">
-                  {[...new Set(product.variants.map((v) => v.color))].map((color) => (
+                  {uniqueColors.map((color) => (
                     <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 border rounded-md ${
-                      selectedColor === color
-                        ? 'border-black bg-black text-white'
-                        : 'border-gray-300 hover:border-gray-400'
+                      key={color}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setSelectedSize(''); // reset size on color change for clarity
+                        setQuantity(1); // reset quantity
+                      }}
+                      className={`px-4 py-2 border rounded-md ${
+                        selectedColor === color
+                          ? 'border-black bg-black text-white'
+                          : 'border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       {color}
@@ -186,42 +256,47 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Quantity Selection */}
+            {/* Quantity */}
             <div>
               <h3 className="font-medium mb-2">Quantity</h3>
               <Select
                 value={quantity.toString()}
-                onValueChange={(value) => setQuantity(parseInt(value))}
+                onValueChange={(val) => setQuantity(parseInt(val))}
+                disabled={!selectedSize || !selectedColor || availableQuantity === 0}
               >
-                <SelectTrigger className="w-32 bg-white border border-gray-300 rounded-md px-3 py-2">
+                <SelectTrigger className="w-32 border px-3 py-2 rounded-md">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 shadow-md rounded-md">
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <SelectItem
-                      key={num}
-                      value={num.toString()}
-                      className="hover:bg-gray-100 px-3 py-2"
-                    >
-                      {num}
+                <SelectContent className="bg-white">
+                  {quantityOptions.length === 0 ? (
+                    <SelectItem value="0" disabled>
+                      Out of Stock
                     </SelectItem>
-                  ))}
+                  ) : (
+                    quantityOptions.map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        {num}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
             {/* Add to Cart Button */}
-            <div className="flex gap-4">
-              <Button
-                onClick={handleAddToCart}
-                className="flex-1"
-                disabled={product.sizes?.length > 1 && !selectedSize}
-              >
-                Add to Cart
-              </Button>
-            </div>
+            <Button
+              onClick={handleAddToCart}
+              className="w-full mt-4"
+              disabled={!selectedSize || !selectedColor || availableQuantity === 0}
+            >
+              Add to Cart
+            </Button>
 
-            {/* Info Section */}
+            <Button className="w-full mt-4" disabled>
+              Buy It Now
+            </Button>
+
+            {/* Extra Info */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t">
               <div className="flex items-center gap-3">
                 <Truck className="h-5 w-5 text-gray-600" />

@@ -18,7 +18,7 @@ export default async function ProductGrid() {
   const products = await getProducts();
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16" id="winter-collection">
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Products</h2>
         <p className="text-gray-600 max-w-2xl mx-auto">

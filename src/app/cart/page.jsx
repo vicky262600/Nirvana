@@ -18,6 +18,7 @@ const CartContent = () => {
   const dispatch = useDispatch();
 
   const items = useSelector(selectCartItems);
+  console.log(items);
   const total = useSelector(selectCartTotal);
 
   const handleUpdateQuantity = (item, newQuantity) => {
@@ -74,7 +75,7 @@ const CartContent = () => {
                 >
                   <div className="flex gap-4">
                     <img
-                      src={item.image}
+                      src={item.images[0]}
                       alt={item.name}
                       className="w-24 h-24 object-cover rounded-md"
                     />
@@ -130,7 +131,7 @@ const CartContent = () => {
             </div>
 
             <div className="mt-6 flex justify-between">
-              <Link href="/shop">
+              <Link href="/">
                 <Button variant="outline">Continue Shopping</Button>
               </Link>
               <Button variant="ghost" onClick={() => dispatch(clearCart())}>
