@@ -21,11 +21,15 @@ import { Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import Lightbox from 'react-image-lightbox';
-import 'react-image-lightbox/style.css';
+import 'react-image-lightbox/style.css'; 
+import { useSelector } from 'react-redux';
+
+
 
 const ProductDetail = () => {
   const { productId } = useParams();
   const dispatch = useDispatch();
+  const { currency, rate } = useSelector((state) => state.currency);
 
   const [product, setProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
@@ -112,6 +116,12 @@ const ProductDetail = () => {
     );
   }
 
+  const currencySymbols = { USD: "$", CAD: "C$" };
+  const convertedPrice = (product.price * rate).toFixed(2);
+  const convertedSalePrice = product.salePrice
+    ? (product.salePrice * rate).toFixed(2)
+    : null;
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -188,17 +198,17 @@ const ProductDetail = () => {
               {product.isOnSale ? (
                 <>
                   <span className="text-2xl font-bold text-gray-400 line-through">
-                    ${product.price.toFixed(2)}
+                  {currencySymbols[currency]} {convertedPrice}
                   </span>
                   <span className="text-2xl font-bold text-black flex items-center gap-1">
-                    ${product.salePrice.toFixed(2)} 
+                    {currencySymbols[currency]} {convertedSalePrice}
                   </span>
                   <span className="ml-2 inline-block text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded">
                     Sale
                   </span>
                 </>
               ) : (
-                <span className="text-2xl font-bold text-black">${product.price.toFixed(2)}</span>
+                <span className="text-2xl font-bold text-black">{currencySymbols[currency]} {convertedPrice}</span>
               )}
             </div>
 

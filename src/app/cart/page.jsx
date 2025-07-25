@@ -14,12 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
+
 const CartContent = () => {
   const dispatch = useDispatch();
 
   const items = useSelector(selectCartItems);
-  console.log(items);
   const total = useSelector(selectCartTotal);
+
+  const { currency, rate } = useSelector((state) => state.currency);
+
 
   const handleUpdateQuantity = (item, newQuantity) => {
     if (newQuantity < 1) return;
@@ -58,6 +61,11 @@ const CartContent = () => {
       </div>
     );
   }
+
+  const currencySymbols = { USD: "$", CAD: "C$" };
+
+  
+  
 
   return (
     <div className="min-h-screen bg-white">
@@ -121,9 +129,9 @@ const CartContent = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-lg">
-                        ${(item.price * item.selectedQuantity).toFixed(2)}
+                      {currencySymbols[currency]}{(item.price * rate * item.selectedQuantity).toFixed(2)}
                       </p>
-                      <p className="text-sm text-gray-600">${item.price.toFixed(2)} each</p>
+                      <p className="text-sm text-gray-600">{currencySymbols[currency]}{(item.price * rate).toFixed(2)} each</p>
                     </div>
                   </div>
                 </div>
@@ -145,20 +153,20 @@ const CartContent = () => {
             <div className="space-y-2 mb-4">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${total.toFixed(2)}</span>
+                <span>{currencySymbols[currency]}{(total * rate).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span className="text-green-600">Free</span>
               </div>
               <div className="flex justify-between">
-                <span>Tax</span>
-                <span>${(total * 0.08).toFixed(2)}</span>
+                <span>GST/HST</span>
+                <span>{currencySymbols[currency]}{(total * rate * 0.13).toFixed(2)}</span>
               </div>
               <hr />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>${(total * 1.08).toFixed(2)}</span>
+                <span>{currencySymbols[currency]}{(total * rate * 1.13).toFixed(2)}</span>
               </div>
             </div>
             <Link href="/checkout">

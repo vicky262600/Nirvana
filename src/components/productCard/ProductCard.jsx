@@ -2,8 +2,19 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useSelector } from 'react-redux';
 
 const ProductCard = ({ product }) => {
+  const { currency, rate } = useSelector((state) => state.currency);
+
+  const currencySymbols = { USD: "$", CAD: "C$" };
+
+  // Converted prices
+  const convertedPrice = (product.price * rate).toFixed(2);
+  const convertedSalePrice = product.salePrice
+    ? (product.salePrice * rate).toFixed(2)
+    : null;
+
   return (
     <Link
       href={`/product/${product._id}`}
@@ -38,18 +49,18 @@ const ProductCard = ({ product }) => {
         <div className="flex items-center justify-between">
           {/* Price Section */}
           <div className="flex items-center gap-2">
-            {product.isOnSale ? (
+            {product.isOnSale && convertedSalePrice ? (
               <>
                 <span className="text-gray-400 line-through text-sm">
-                  ${product.price}
+                  {currencySymbols[currency]} {convertedPrice}
                 </span>
                 <span className="font-bold text-black">
-                  ${product.salePrice}
+                  {currencySymbols[currency]} {convertedSalePrice}
                 </span>
               </>
             ) : (
               <span className="font-bold text-black">
-                ${product.price}
+                {currencySymbols[currency]} {convertedPrice}
               </span>
             )}
           </div>

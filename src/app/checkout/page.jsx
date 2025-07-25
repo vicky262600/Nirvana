@@ -1,14 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 
 const Checkout = () => {
+  const [isClient, setIsClient] = useState(false);
   const items = useSelector((state) => state.cart.items);
+  const { currency, rate } = useSelector((state) => state.currency);
+
   const total = items.reduce((acc, item) => acc + item.price * item.selectedQuantity, 0);
+  const convertedTotal = total * rate;
+  const tax = convertedTotal * 0.13;
+  const grandTotal = convertedTotal + tax;
+  const currencySymbols = { USD: "$", CAD: "C$" };
 
   const [formData, setFormData] = useState({
     email: '',
@@ -18,8 +25,63 @@ const Checkout = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: 'CA',
+    country: '',
   });
+
+  const addressInputRef = useRef(null);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+
+    const loadGoogleMapsScript = () => {
+      if (window.google && window.google.maps && !initializedRef.current) {
+        initAutocomplete();
+        return;
+      }
+
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript) return;
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => initAutocomplete();
+      document.head.appendChild(script);
+    };
+
+    const initAutocomplete = () => {
+      if (!addressInputRef.current || initializedRef.current) return;
+      initializedRef.current = true;
+
+      const autocomplete = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ['address'],
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        const components = place.address_components || [];
+
+        const getComponent = (type) =>
+          components.find((c) => c.types.includes(type))?.long_name || '';
+
+        setFormData((prev) => ({
+          ...prev,
+          address: place.formatted_address || '',
+          city: getComponent('locality') || getComponent('sublocality') || '',
+          state: getComponent('administrative_area_level_1') || '',
+          zipCode: getComponent('postal_code') || '',
+        }));
+      });
+    };
+
+    loadGoogleMapsScript();
+  }, [isClient]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -28,8 +90,10 @@ const Checkout = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Order submitted:', { formData, items, total });
-    // 👉 Add Stripe or backend integration here
+    // Add backend or payment integration here
   };
+
+  if (!isClient) return null;
 
   if (items.length === 0) {
     return (
@@ -96,6 +160,8 @@ const Checkout = () => {
                 <label className="block mb-1 font-medium">Address</label>
                 <input
                   type="text"
+                  ref={addressInputRef}
+                  placeholder="Start typing your address..."
                   className="w-full border border-gray-300 px-4 py-2 rounded"
                   value={formData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
@@ -103,32 +169,26 @@ const Checkout = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-1 font-medium">City</label>
-                  <input
-                    type="text"
-                    className="w-full border border-gray-300 px-4 py-2 rounded"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Province</label>
-                  <select
-                    className="w-full border border-gray-300 px-4 py-2 rounded"
-                    value={formData.state}
-                    onChange={(e) => handleInputChange('state', e.target.value)}
-                    required
-                  >
-                    <option value="">Select</option>
-                    <option value="ON">Ontario</option>
-                    <option value="BC">British Columbia</option>
-                    <option value="QC">Quebec</option>
-                    <option value="AB">Alberta</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block mb-1 font-medium">City</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 px-4 py-2 rounded"
+                  value={formData.city}
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 font-medium">Province / State</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 px-4 py-2 rounded"
+                  value={formData.state}
+                  onChange={(e) => handleInputChange('state', e.target.value)}
+                  required
+                />
               </div>
 
               <div>
@@ -161,7 +221,9 @@ const Checkout = () => {
                       {item.selectedColor && ` • Color: ${item.selectedColor}`}
                     </p>
                   </div>
-                  <p className="font-medium">${(item.price * item.selectedQuantity).toFixed(2)}</p>
+                  <p className="font-medium">
+                    {currencySymbols[currency]}{(item.price * item.selectedQuantity * rate).toFixed(2)}
+                  </p>
                 </div>
               ))}
 
@@ -169,20 +231,20 @@ const Checkout = () => {
 
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>${total.toFixed(2)}</span>
+                <span>{currencySymbols[currency]}{convertedTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span className="text-green-600">Free</span>
               </div>
               <div className="flex justify-between">
-                <span>Tax</span>
-                <span>${(total * 0.08).toFixed(2)}</span>
+                <span>GST/HST (13%)</span>
+                <span>{currencySymbols[currency]}{tax.toFixed(2)}</span>
               </div>
               <hr />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>${(total * 1.08).toFixed(2)}</span>
+                <span>{currencySymbols[currency]}{grandTotal.toFixed(2)}</span>
               </div>
 
               <button

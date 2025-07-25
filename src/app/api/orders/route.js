@@ -18,7 +18,7 @@ export async function POST(req) {
   }
 
   const userId = decoded.id;
-  const { items, total } = await req.json();
+  const { items, total, shippingInfo } = await req.json();
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ message: "Cart is empty" }, { status: 400 });
@@ -27,11 +27,25 @@ export async function POST(req) {
     return NextResponse.json({ message: "Invalid total amount" }, { status: 400 });
   }
 
+  if (
+    !shippingInfo ||
+    !shippingInfo.email ||
+    !shippingInfo.firstName ||
+    !shippingInfo.lastName ||
+    !shippingInfo.address ||
+    !shippingInfo.city ||
+    !shippingInfo.state ||
+    !shippingInfo.zipCode
+  ) {
+    return NextResponse.json({ message: "Incomplete shipping information" }, { status: 400 });
+  }
+
   try {
     const newOrder = await Order.create({
       userId,
       items,
       total,
+      shippingInfo,
       status: "pending",
     });
     return NextResponse.json({ message: "Order placed successfully", order: newOrder }, { status: 201 });
