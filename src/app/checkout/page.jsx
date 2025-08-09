@@ -7,14 +7,22 @@ import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 
 const Checkout = () => {
+  const [shippingCost, setShippingCost] = useState(null);
+  const [loadingShipping, setLoadingShipping] = useState(false);
   const [isClient, setIsClient] = useState(false);
+
   const items = useSelector((state) => state.cart.items);
   const { currency, rate } = useSelector((state) => state.currency);
 
   const total = items.reduce((acc, item) => acc + item.price * item.selectedQuantity, 0);
   const convertedTotal = total * rate;
   const tax = convertedTotal * 0.13;
-  const grandTotal = convertedTotal + tax;
+
+  // shipping cost in selected currency or 0 if null
+  const shippingCostConverted = shippingCost ? shippingCost * rate : 0;
+
+  const grandTotal = convertedTotal + tax + shippingCostConverted;
+
   const currencySymbols = { USD: "$", CAD: "C$" };
 
   const [formData, setFormData] = useState({
@@ -25,7 +33,7 @@ const Checkout = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: '',
+    country: 'CA', // default country
   });
 
   const addressInputRef = useRef(null);
@@ -44,8 +52,7 @@ const Checkout = () => {
         return;
       }
 
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) return;
+      if (document.querySelector('script[src*="maps.googleapis.com"]')) return;
 
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
@@ -67,15 +74,20 @@ const Checkout = () => {
         const place = autocomplete.getPlace();
         const components = place.address_components || [];
 
-        const getComponent = (type) =>
+        const getComponentLongName = (type) =>
           components.find((c) => c.types.includes(type))?.long_name || '';
+        
+        const getComponentShortName = (type) =>
+          components.find((c) => c.types.includes(type))?.short_name || '';
+        
 
         setFormData((prev) => ({
           ...prev,
           address: place.formatted_address || '',
-          city: getComponent('locality') || getComponent('sublocality') || '',
-          state: getComponent('administrative_area_level_1') || '',
-          zipCode: getComponent('postal_code') || '',
+          city: getComponentLongName('locality') || getComponentLongName('sublocality') || '',
+          state: getComponentShortName('administrative_area_level_1') || '',
+          zipCode: getComponentLongName('postal_code') || '',
+          country: getComponentShortName('country') || prev.country,
         }));
       });
     };
@@ -86,11 +98,83 @@ const Checkout = () => {
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+  function debounce(fn, delay) {
+    let timer;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  }
+  
+
+  useEffect(() => {
+    if (!formData.zipCode || !formData.city || !formData.state || items.length === 0) {
+      setShippingCost(null);
+      return;
+    }
+  
+    const fetchShipping = async () => {
+      setLoadingShipping(true);
+      try {
+        const line_items = items.map(item => ({
+          quantity: item.selectedQuantity,
+          description: item.title,
+          value_amount: item.price.toFixed(2),
+          currency_code: currency.toLowerCase(),
+          origin_country: "ca",
+        }));
+  
+        const res = await fetch('/api/shipping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destination: {
+              address: formData.address,
+              city: formData.city,
+              province_code: formData.state,
+              postal_code: formData.zipCode,
+              country_code: formData.country,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+            },
+            line_items,
+          }),
+        });
+  
+        if (!res.ok) {
+          setShippingCost(null);
+          return;
+        }
+  
+        const data = await res.json();
+  
+        if (data) {
+          setShippingCost(data.cost || data.rates?.[0]?.total || data.rates?.[0]?.total_cost || null);
+        } else {
+          setShippingCost(null);
+        }
+      } catch {
+        setShippingCost(null);
+      } finally {
+        setLoadingShipping(false);
+      }
+    };
+  
+    const debouncedFetch = debounce(fetchShipping, 500);
+    debouncedFetch();
+  
+    // Cleanup function to clear timeout on unmount or deps change
+    return () => {
+      debouncedFetch.cancel && debouncedFetch.cancel();
+    };
+  
+  }, [formData.zipCode, formData.city, formData.state, formData.country, items, currency]);
+  
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Order submitted:', { formData, items, total });
-    // Add backend or payment integration here
+    console.log('Order submitted:', { formData, items, total, shippingCost });
+    // Add your backend or payment integration here
   };
 
   if (!isClient) return null;
@@ -201,6 +285,17 @@ const Checkout = () => {
                   required
                 />
               </div>
+
+              <div>
+                <label className="block mb-1 font-medium">Country</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 px-4 py-2 rounded"
+                  value={formData.country}
+                  onChange={(e) => handleInputChange('country', e.target.value)}
+                  required
+                />
+              </div>
             </form>
           </div>
 
@@ -233,15 +328,21 @@ const Checkout = () => {
                 <span>Subtotal</span>
                 <span>{currencySymbols[currency]}{convertedTotal.toFixed(2)}</span>
               </div>
+
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span className="text-green-600">Free</span>
+                <span className={`font-medium ${loadingShipping ? 'text-gray-400' : 'text-green-600'}`}>
+                  {loadingShipping ? 'Calculating...' : shippingCost !== null ? `${currencySymbols[currency]}${shippingCostConverted.toFixed(2)}` : 'N/A'}
+                </span>
               </div>
+
               <div className="flex justify-between">
                 <span>GST/HST (13%)</span>
                 <span>{currencySymbols[currency]}{tax.toFixed(2)}</span>
               </div>
+
               <hr />
+
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
                 <span>{currencySymbols[currency]}{grandTotal.toFixed(2)}</span>
@@ -257,7 +358,8 @@ const Checkout = () => {
                   !formData.address ||
                   !formData.city ||
                   !formData.state ||
-                  !formData.zipCode
+                  !formData.zipCode ||
+                  loadingShipping
                 }
               >
                 Complete Order

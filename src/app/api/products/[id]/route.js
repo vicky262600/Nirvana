@@ -130,6 +130,39 @@ export async function PUT(req, context) {
     }
 
     const data = await req.json();
+
+    // Fetch old product
+    const oldProduct = await Product.findById(id);
+    if (!oldProduct) {
+      const res = NextResponse.json({ message: "Product not found" }, { status: 404 });
+      setCorsHeaders(res);
+      return res;
+    }
+
+    // Determine which images were removed
+    const oldImages = oldProduct.images || [];
+    const newImages = data.images || [];
+
+    // Images removed = oldImages not in newImages
+    const removedImages = oldImages.filter(oldImg => !newImages.includes(oldImg));
+
+    // Delete removed images from Firebase Storage
+    const deletePromises = removedImages.map(async (url) => {
+      // Extract file path from URL — adapt your regex if needed
+      const pathMatch = url.match(/%2F(.+)\?/);
+      const path = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
+      if (path) {
+        try {
+          await bucket.file(`products/${path}`).delete();
+          console.log(`Deleted image from storage: ${path}`);
+        } catch (err) {
+          console.error(`Failed to delete image: ${path}`, err.message);
+        }
+      }
+    });
+    await Promise.all(deletePromises);
+
+    // Now update the product with new data
     const updatedProduct = await Product.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true,
@@ -138,12 +171,14 @@ export async function PUT(req, context) {
     const res = NextResponse.json({ message: "Product updated", product: updatedProduct });
     setCorsHeaders(res);
     return res;
+
   } catch (error) {
     const res = NextResponse.json({ message: "Error updating", error: error.message }, { status: 500 });
     setCorsHeaders(res);
     return res;
   }
 }
+
 
 // // DELETE - Remove product (admin only)
 // export async function DELETE(req, context) {

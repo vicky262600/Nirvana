@@ -19,6 +19,7 @@ export default function LoginPage() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -28,6 +29,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setShowForgot(false); // reset on new attempt
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -42,13 +44,11 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Store user in Redux
       dispatch(setUser(data.user));
-
-      // Redirect to home
       router.push('/');
     } catch (err) {
       setError(err.message);
+      setShowForgot(true); // show forgot password if login fails
     } finally {
       setLoading(false);
     }
@@ -76,17 +76,23 @@ export default function LoginPage() {
             />
           </label>
 
-          <label className="block mb-4">
-            <span className="block mb-1 font-medium">Password</span>
-            <input
-              type="password"
-              name="password"
-              required
-              value={form.password}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </label>
+          <label className="block mb-1 font-medium">Password</label>
+          <input
+            type="password"
+            name="password"
+            required
+            value={form.password}
+            onChange={handleChange}
+            className="w-full mb-2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          {showForgot && (
+            <p className="text-sm text-right mb-4">
+              <Link href="/forgot-password" className="text-blue-600 hover:underline">
+                Forgot Password?
+              </Link>
+            </p>
+          )}
 
           {error && (
             <p className="mb-4 text-red-600 text-center font-medium">{error}</p>

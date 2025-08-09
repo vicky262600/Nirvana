@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import { verifyJWT } from "@/lib/auth";
+import mongoose from "mongoose"; 
 
 export async function POST(req) {
   await connectDB();
@@ -69,14 +70,37 @@ export async function GET(req) {
 
   const url = new URL(req.url);
   const userId = url.searchParams.get("userId");
+  const search = url.searchParams.get("search") || "";
+
+  // Build search filter
+  let searchFilter = {};
+  if (search) {
+    const regex = new RegExp(search, "i"); // case-insensitive regex
+
+    // Check if search is a valid ObjectId for _id search
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(search);
+
+    // Compose $or array conditionally
+    const orConditions = [
+      { "shippingInfo.email": regex },
+      { "shippingInfo.firstName": regex },
+      { "shippingInfo.lastName": regex },
+    ];
+
+    if (isValidObjectId) {
+      orConditions.push({ _id: search }); // exact match for ObjectId
+    }
+
+    searchFilter = { $or: orConditions };
+  }
 
   if (userId) {
     if (decoded.id !== userId && !decoded.isAdmin) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
     try {
-      const orders = await Order.find({ userId });
-      return NextResponse.json(orders);
+      const orders = await Order.find({ userId, ...searchFilter });
+      return NextResponse.json({ orders });
     } catch (err) {
       return NextResponse.json({ message: "Failed to fetch orders", error: err.message }, { status: 500 });
     }
@@ -85,8 +109,8 @@ export async function GET(req) {
       return NextResponse.json({ message: "Admins only" }, { status: 403 });
     }
     try {
-      const orders = await Order.find();
-      return NextResponse.json(orders);
+      const orders = await Order.find(searchFilter);
+      return NextResponse.json({ orders });
     } catch (err) {
       return NextResponse.json({ message: "Failed to fetch orders", error: err.message }, { status: 500 });
     }

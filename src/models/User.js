@@ -23,6 +23,14 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // Add these fields inside the main schema object
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 
 export async function GET(req) {
   await connectDB();
+
   const token = req.cookies.get("token")?.value;
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
@@ -23,8 +24,8 @@ export async function GET(req) {
   const productId = url.searchParams.get("productId");
 
   const date = new Date();
-  const lastMonth = new Date(date.setMonth(date.getMonth() - 1));
-  const prevMonth = new Date(new Date().setMonth(lastMonth.getMonth() - 1));
+  const lastMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  const prevMonth = new Date(date.getFullYear(), date.getMonth() - 2, 1);
 
   try {
     const income = await Order.aggregate([
@@ -49,8 +50,12 @@ export async function GET(req) {
         },
       },
     ]);
+
     return NextResponse.json(income);
   } catch (err) {
-    return NextResponse.json({ message: "Failed to fetch income", error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to fetch income", error: err.message },
+      { status: 500 }
+    );
   }
 }
