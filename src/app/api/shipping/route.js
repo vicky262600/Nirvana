@@ -24,11 +24,11 @@ export async function POST(req) {
         is_residential: true,
       },
       is_return: false,
-      weight_unit: "lbs",
-      weight: line_items.reduce((acc, item) => acc + item.quantity * 0.5, 0.6), // example weight calculation
-      length: 9,
-      width: 12,
-      height: 1,
+      weight_unit: "kg",
+      weight: 1, // example weight calculation
+      length: 30,
+      width: 20,
+      height: 1.5,
       size_unit: "cm",
       items: line_items.map(item => ({
         description: item.description,
@@ -75,6 +75,7 @@ export async function POST(req) {
     }
 
     const data = await response.json();
+    console.log(data);
 
     // Pick the cheapest rate or first rate from data.rates array
     if (data.success && data.rates && data.rates.length > 0) {

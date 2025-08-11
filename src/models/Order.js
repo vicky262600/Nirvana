@@ -14,6 +14,7 @@ const OrderSchema = new mongoose.Schema(
       state: { type: String, required: true },
       zipCode: { type: String, required: true },
       country: { type: String }, // optional if not used yet
+      // shipmentCharge: { type: Number, default: 0 }, // shipping cost for this order
     },
 
     items: [
@@ -29,7 +30,16 @@ const OrderSchema = new mongoose.Schema(
     ],
 
     total: { type: Number, required: true },
-    status: { type: String, default: "pending" },
+    shippingCost: { type: Number, default: 0 },
+    status: { type: String, default: "pending", enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"] },
+    
+    // Payment fields
+    paymentId: { type: String },
+    paymentStatus: { type: String, default: "pending", enum: ["pending", "paid", "failed", "refunded"] },
+    
+    // Tracking
+    trackingNumber: { type: String },
+    estimatedDelivery: { type: Date },
   },
   { timestamps: true }
 );
