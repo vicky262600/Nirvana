@@ -75,6 +75,7 @@ export async function POST(req) {
     }
 
     const data = await response.json();
+    console.log(data);
 
     // Pick the cheapest rate or first rate from data.rates array
     if (data.success && data.rates && data.rates.length > 0) {
