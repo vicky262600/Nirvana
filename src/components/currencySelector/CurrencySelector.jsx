@@ -9,14 +9,26 @@ const CurrencySelector = () => {
 
   const handleChange = async (e) => {
     const selected = e.target.value;
-
-    // Fetch the latest exchange rate for selected currency
+  
+    // Fetch latest USD base exchange rates
     const res = await fetch(`https://open.er-api.com/v6/latest/USD`);
     const data = await res.json();
-    const rate = data?.rates?.[selected] ?? 1;
-
+  
+    const usdToCad = data?.rates?.["CAD"] ?? 1;
+  
+    let rate;
+  
+    if (selected === "CAD") {
+      rate = 1; // prices already in CAD, no conversion
+    } else if (selected === "USD") {
+      rate = 1 / usdToCad; // convert CAD prices to USD
+    } else {
+      rate = 1; // fallback
+    }
+  
     dispatch(setCurrencyManually({ currency: selected, rate }));
   };
+  
 
   return (
     <select

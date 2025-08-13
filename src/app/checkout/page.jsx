@@ -14,6 +14,9 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderStatus, setOrderStatus] = useState(null); // 'success', 'error', null
   const [orderMessage, setOrderMessage] = useState('');
+  const [shippingRates, setShippingRates] = useState([]);
+const [selectedRate, setSelectedRate] = useState(null);
+
 
   const items = useSelector((state) => state.cart.items);
   const { currency, rate } = useSelector((state) => state.currency);
@@ -145,6 +148,7 @@ const Checkout = () => {
             line_items,
           }),
         });
+        console.log(res);
   
         if (!res.ok) {
           setShippingCost(null);
@@ -152,12 +156,20 @@ const Checkout = () => {
         }
   
         const data = await res.json();
+        console.log(data);
   
-        if (data) {
-          setShippingCost(data.cost || data.rates?.[0]?.total || data.rates?.[0]?.total_cost || null);
+        if (data && Array.isArray(data.rates)) {
+          setShippingRates(data.rates);
+          if (data.rates.length > 0) {
+            // default to first or cheapest
+            setSelectedRate(data.rates[0]);
+            setShippingCost(data.rates[0].total);
+          }
         } else {
+          setShippingRates([]);
           setShippingCost(null);
         }
+        
       } catch {
         setShippingCost(null);
       } finally {
@@ -469,6 +481,7 @@ const Checkout = () => {
               </div>
             </form>
           </div>
+          
 
           {/* Order Summary */}
           <div className="bg-white shadow-md rounded-lg p-6">
@@ -499,6 +512,27 @@ const Checkout = () => {
                 <span>Subtotal</span>
                 <span>{currencySymbols[currency]}{convertedTotal.toFixed(2)}</span>
               </div>
+              {shippingRates.length > 0 && (
+  <div className="mb-4">
+    <label className="block mb-1 font-medium">Select Shipping Method</label>
+    <select
+      className="w-full border border-gray-300 px-3 py-2 rounded"
+      value={selectedRate?.postage_type || ""}
+      onChange={(e) => {
+        const rate = shippingRates.find(r => r.postage_type === e.target.value);
+        setSelectedRate(rate);
+        setShippingCost(rate.total);
+      }}
+    >
+      {shippingRates.map((item, idx) => (
+        <option key={idx} value={item.postage_type}>
+          {item.postage_type} - {item.delivery_days} days - {currencySymbols[currency]}{(item.total * rate).toFixed(2)}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
 
               <div className="flex justify-between">
                 <span>Shipping</span>

@@ -56,7 +56,7 @@ export async function POST(req) {
       }
     };
 
-    console.log('Stallion Payload:', JSON.stringify(stallionPayload, null, 2));
+    // console.log('Stallion Payload:', JSON.stringify(stallionPayload, null, 2));
 
     // Call Stallion Express API:
     const response = await fetch('https://ship.stallionexpress.ca/api/v4/rates', {
@@ -75,16 +75,14 @@ export async function POST(req) {
     }
 
     const data = await response.json();
-    console.log(data);
-
-    // Pick the cheapest rate or first rate from data.rates array
+    
+    // In /api/shipping/route.js
     if (data.success && data.rates && data.rates.length > 0) {
-      // Example: cheapest rate total cost
-      const cheapestRate = data.rates.reduce((prev, curr) => (prev.total < curr.total ? prev : curr));
-      return NextResponse.json({ cost: cheapestRate.total, rates: data.rates });
+      console.log(data);
+      return NextResponse.json({ rates: data.rates });
     }
 
-    return NextResponse.json({ cost: null, rates: [] });
+    return NextResponse.json({ rates: [] });
 
   } catch (error) {
     console.error('Shipping API route error:', error);
