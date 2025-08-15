@@ -6,6 +6,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 import { clearCart } from '@/redux/cartSlice';
+import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
 
 const Checkout = () => {
   const [shippingCost, setShippingCost] = useState(null);
@@ -186,6 +188,10 @@ const [selectedRate, setSelectedRate] = useState(null);
     };
   
   }, [formData.zipCode, formData.city, formData.state, formData.country, items, currency]);
+
+
+  const stripe = useStripe();
+  const elements = useElements();
   
 
   const handleSubmit = async (e) => {
@@ -195,97 +201,35 @@ const [selectedRate, setSelectedRate] = useState(null);
     setOrderMessage('');
 
     try {
-      // Step 1: Process mock payment
-      console.log('Processing mock payment...');
-      const paymentResponse = await fetch('/api/payment/mock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      // 1️⃣ Call backend to check inventory + create payment intent
+      const res = await fetch("/api/payment/stripe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: grandTotal,
-          currency: currency,
-          orderId: `order_${Date.now()}`
+          items,
+          currency: currency.toLowerCase(),
+          amount: Math.round(grandTotal * 100), // in cents
+          shipping: formData
         })
       });
-
-      const paymentResult = await paymentResponse.json();
-
-      if (!paymentResult.success) {
-        throw new Error(paymentResult.error || 'Payment failed');
-      }
-
-      console.log('Payment successful:', paymentResult);
-
-      // Step 2: Create order with payment info
-      console.log('Creating order with data:', {
-        items: items.map(item => ({
-          productId: item.productId,
-          name: item.title || item.name,
-          size: item.selectedSize,
-          color: item.selectedColor,
-          quantity: item.selectedQuantity
-        })),
-        total: grandTotal,
-        shippingCost: shippingCostConverted,
-        paymentId: paymentResult.paymentId
+  
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create payment");
+      
+      
+      // 2️⃣ Confirm card payment
+      const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+        payment_method: { card: elements.getElement(CardElement) }
       });
       
-      const orderResponse = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: items.map(item => ({
-            productId: item.productId,
-            name: item.title || item.name,
-            image: item.image,
-            price: item.price * rate,
-            selectedSize: item.selectedSize,
-            selectedColor: item.selectedColor,
-            selectedQuantity: item.selectedQuantity,
-          })),
-          total: grandTotal,
-          shippingCost: shippingCostConverted,
-          shippingInfo: {
-            email: formData.email,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            address: formData.address,
-            city: formData.city,
-            state: formData.state,
-            zipCode: formData.zipCode,
-            country: formData.country,
-          },
-          paymentId: paymentResult.paymentId
-        })
-      });
-
-      if (!orderResponse.ok) {
-        const orderError = await orderResponse.json();
-        console.error('Order creation failed:', orderError);
-        throw new Error(orderError.error || orderError.message || 'Failed to create order');
+      if (error) throw new Error(error.message);
+      console.log("Items at checkout:", items);
+      
+      if (paymentIntent.status === "succeeded") {
+        dispatch(clearCart());
+        setOrderStatus("success");
+        setOrderMessage("Payment successful! Thank you for your order.");
       }
-
-      const orderResult = await orderResponse.json();
-      console.log('Order created successfully:', orderResult);
-
-      // Step 3: Clear cart from Redux
-      dispatch(clearCart());
-
-      // Step 4: Show success message
-      setOrderStatus('success');
-      setOrderMessage(`Order #${orderResult.order._id} placed successfully! You will receive a confirmation email shortly.`);
-
-      // Step 5: Reset form (optional - you might want to redirect instead)
-      setFormData({
-        email: '',
-        firstName: '',
-        lastName: '',
-        address: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: 'CA',
-      });
-
     } catch (error) {
       console.error('Order processing error:', error);
       setOrderStatus('error');
@@ -310,6 +254,35 @@ const [selectedRate, setSelectedRate] = useState(null);
   };
 
   if (!isClient) return null;
+
+  if (orderStatus === 'success') {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <main className="container mx-auto px-4 py-16 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="text-green-600 text-6xl mb-4">✓</div>
+            <h1 className="text-3xl font-bold mb-4 text-green-600">Order Successful!</h1>
+            <p className="text-gray-600 mb-8">{orderMessage}</p>
+            <Link href="/">
+              <button className="bg-black text-white px-6 py-3 rounded hover:bg-gray-900 transition">
+                Continue Shopping
+              </button>
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  if (orderStatus === 'error') {
+    return (
+      <div className="min-h-screen bg-white">
+        {/* ...error UI */}
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -552,6 +525,13 @@ const [selectedRate, setSelectedRate] = useState(null);
                 <span>Total</span>
                 <span>{currencySymbols[currency]}{grandTotal.toFixed(2)}</span>
               </div>
+              <div>
+                <label className="block mb-1 font-medium">Card Details</label>
+                <div className="border border-gray-300 p-3 rounded">
+                  <CardElement />
+                </div>
+              </div>
+
 
               <button
                 onClick={handleSubmit}
