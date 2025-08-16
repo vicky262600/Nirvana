@@ -1,4 +1,3 @@
-// /app/api/create-payment-intent/route.js
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import connectDB from "@/lib/db";
@@ -10,8 +9,7 @@ export async function POST(req) {
   await connectDB();
 
   try {
-    const { items, currency, amount, shipping } = await req.json();
-    // const body = await req.json();
+    const { items, currency, shipping } = await req.json();
     console.log("Backend received:", items);
 
     // 1️⃣ Inventory check
@@ -27,7 +25,6 @@ export async function POST(req) {
         );
       }
 
-      // Match variant (size + color) & check stock
       const variant = product.variants.find(
         v => v.size === cartItem.selectedSize && v.color === cartItem.selectedColor
       );
@@ -39,25 +36,72 @@ export async function POST(req) {
       }
     }
 
-    // 2️⃣ Create PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount, // in cents
-      currency,
-      description: "Order payment",
+    // 2️⃣ Build line_items
+    const line_items = items.map(item => {
+      const product = products.find(p => p._id.toString() === item.productId);
+
+      return {
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: {
+            name: product.title,
+            description: `${item.selectedSize || ''} ${item.selectedColor || ''}`.trim(),
+          },
+          unit_amount: Math.round(Number(item.price) * 100), // already converted
+        },
+        quantity: item.selectedQuantity,
+      };
+    });
+
+    // 3️⃣ Add shipping as a line item
+    if (shipping && shipping.shippingCost) {
+      line_items.push({
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: { name: "Shipping" },
+          unit_amount: Math.round(Number(shipping.shippingCost) * 100),
+        },
+        quantity: 1,
+      });
+    }
+
+    // 4️⃣ Add tax as a line item
+    if (shipping && shipping.tax) {
+      line_items.push({
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: { name: "GST/HST (13%)" },
+          unit_amount: Math.round(Number(shipping.tax) * 100),
+        },
+        quantity: 1,
+      });
+    }
+
+    // 5️⃣ Create Stripe Checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items,
+      mode: 'payment',
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout`,
+      customer_email: shipping.email,
       metadata: {
         shippingName: `${shipping.firstName} ${shipping.lastName}`,
         shippingAddress: shipping.address,
         shippingCity: shipping.city,
         shippingState: shipping.state,
         shippingZip: shipping.zipCode,
-        shippingCountry: shipping.country
+        shippingCountry: shipping.country,
       },
-      automatic_payment_methods: { enabled: true } // enables card + other Stripe methods
+      shipping_address_collection: {
+        allowed_countries: ['CA', 'US'], // adjust based on your needs
+      },
     });
 
-    return NextResponse.json({ clientSecret: paymentIntent.client_secret });
+    return NextResponse.json({ url: session.url });
+
   } catch (error) {
-    console.error("Payment intent creation error:", error);
+    console.error("Stripe Checkout session error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

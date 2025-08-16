@@ -6,19 +6,15 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 import { clearCart } from '@/redux/cartSlice';
-import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import Script from 'next/script';
 
 
 const Checkout = () => {
   const [shippingCost, setShippingCost] = useState(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [orderStatus, setOrderStatus] = useState(null); // 'success', 'error', null
-  const [orderMessage, setOrderMessage] = useState('');
   const [shippingRates, setShippingRates] = useState([]);
-const [selectedRate, setSelectedRate] = useState(null);
-
+  const [selectedRate, setSelectedRate] = useState(null);
 
   const items = useSelector((state) => state.cart.items);
   const { currency, rate } = useSelector((state) => state.currency);
@@ -27,12 +23,8 @@ const [selectedRate, setSelectedRate] = useState(null);
   const total = items.reduce((acc, item) => acc + item.price * item.selectedQuantity, 0);
   const convertedTotal = total * rate;
   const tax = convertedTotal * 0.13;
-
-  // shipping cost in selected currency or 0 if null
   const shippingCostConverted = shippingCost ? shippingCost * rate : 0;
-
   const grandTotal = convertedTotal + tax + shippingCostConverted;
-
   const currencySymbols = { USD: "$", CAD: "C$" };
 
   const [formData, setFormData] = useState({
@@ -43,7 +35,7 @@ const [selectedRate, setSelectedRate] = useState(null);
     city: '',
     state: '',
     zipCode: '',
-    country: '', // default country
+    country: '',
   });
 
   const addressInputRef = useRef(null);
@@ -90,7 +82,6 @@ const [selectedRate, setSelectedRate] = useState(null);
         const getComponentShortName = (type) =>
           components.find((c) => c.types.includes(type))?.short_name || '';
         
-
         setFormData((prev) => ({
           ...prev,
           address: place.formatted_address || '',
@@ -108,6 +99,7 @@ const [selectedRate, setSelectedRate] = useState(null);
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
   function debounce(fn, delay) {
     let timer;
     return function(...args) {
@@ -115,14 +107,13 @@ const [selectedRate, setSelectedRate] = useState(null);
       timer = setTimeout(() => fn(...args), delay);
     };
   }
-  
 
   useEffect(() => {
     if (!formData.zipCode || !formData.city || !formData.state || items.length === 0) {
       setShippingCost(null);
       return;
     }
-  
+
     const fetchShipping = async () => {
       setLoadingShipping(true);
       try {
@@ -133,7 +124,7 @@ const [selectedRate, setSelectedRate] = useState(null);
           currency_code: currency.toLowerCase(),
           origin_country: "ca",
         }));
-  
+
         const res = await fetch('/api/shipping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -150,20 +141,16 @@ const [selectedRate, setSelectedRate] = useState(null);
             line_items,
           }),
         });
-        console.log(res);
-  
+
         if (!res.ok) {
           setShippingCost(null);
           return;
         }
-  
+
         const data = await res.json();
-        console.log(data);
-  
         if (data && Array.isArray(data.rates)) {
           setShippingRates(data.rates);
           if (data.rates.length > 0) {
-            // default to first or cheapest
             setSelectedRate(data.rates[0]);
             setShippingCost(data.rates[0].total);
           }
@@ -171,118 +158,58 @@ const [selectedRate, setSelectedRate] = useState(null);
           setShippingRates([]);
           setShippingCost(null);
         }
-        
+
       } catch {
         setShippingCost(null);
       } finally {
         setLoadingShipping(false);
       }
     };
-  
+
     const debouncedFetch = debounce(fetchShipping, 500);
     debouncedFetch();
-  
-    // Cleanup function to clear timeout on unmount or deps change
+
     return () => {
       debouncedFetch.cancel && debouncedFetch.cancel();
     };
-  
+
   }, [formData.zipCode, formData.city, formData.state, formData.country, items, currency]);
 
-
-  const stripe = useStripe();
-  const elements = useElements();
-  
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsProcessing(true);
-    setOrderStatus(null);
-    setOrderMessage('');
-
+  const handleCheckout = async () => {
     try {
-      // 1️⃣ Call backend to check inventory + create payment intent
-      const res = await fetch("/api/payment/stripe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items,
-          currency: currency.toLowerCase(),
-          amount: Math.round(grandTotal * 100), // in cents
-          shipping: formData
-        })
-      });
-  
+      const convertedItems = items.map(item => ({
+        ...item,
+        price: (item.price * rate).toFixed(2)  // convert CAD → selected currency
+      }));
+
+      const res = await fetch('/api/payment/stripe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: convertedItems,
+        currency,
+        shipping: { 
+          ...formData, 
+          shippingCost: shippingCostConverted, // converted shipping
+          tax: tax // ✅ send tax
+        }
+      }),
+    });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create payment");
-      
-      
-      // 2️⃣ Confirm card payment
-      const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: { card: elements.getElement(CardElement) }
-      });
-      
-      if (error) throw new Error(error.message);
-      console.log("Items at checkout:", items);
-      
-      if (paymentIntent.status === "succeeded") {
-        dispatch(clearCart());
-        setOrderStatus("success");
-        setOrderMessage("Payment successful! Thank you for your order.");
+      if (data.url) {
+        dispatch(clearCart()); // clear cart before redirect
+        window.location.href = data.url; // redirect to Stripe Checkout
+      } else {
+        alert('Failed to initiate payment. Please try again.');
       }
     } catch (error) {
-      console.error('Order processing error:', error);
-      setOrderStatus('error');
-      
-      // Provide more specific error messages
-      let errorMessage = 'Failed to process order. Please try again.';
-      
-      if (error.message.includes('Insufficient inventory')) {
-        errorMessage = 'Some items in your cart are out of stock. Please check your cart and try again.';
-      } else if (error.message.includes('Payment failed')) {
-        errorMessage = 'Payment processing failed. Please check your payment method and try again.';
-      } else if (error.message.includes('Product not found')) {
-        errorMessage = 'Some products in your cart are no longer available. Please refresh your cart.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      setOrderMessage(errorMessage);
-    } finally {
-      setIsProcessing(false);
+      console.error(error);
+      alert('Something went wrong. Please try again.');
     }
   };
 
   if (!isClient) return null;
-
-  if (orderStatus === 'success') {
-    return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <main className="container mx-auto px-4 py-16 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="text-green-600 text-6xl mb-4">✓</div>
-            <h1 className="text-3xl font-bold mb-4 text-green-600">Order Successful!</h1>
-            <p className="text-gray-600 mb-8">{orderMessage}</p>
-            <Link href="/">
-              <button className="bg-black text-white px-6 py-3 rounded hover:bg-gray-900 transition">
-                Continue Shopping
-              </button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-  
-  if (orderStatus === 'error') {
-    return (
-      <div className="min-h-screen bg-white">
-        {/* ...error UI */}
-      </div>
-    );
-  }
 
   if (items.length === 0) {
     return (
@@ -300,57 +227,6 @@ const [selectedRate, setSelectedRate] = useState(null);
     );
   }
 
-  if (orderStatus === 'success') {
-    return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <main className="container mx-auto px-4 py-16 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="text-green-600 text-6xl mb-4">✓</div>
-            <h1 className="text-3xl font-bold mb-4 text-green-600">Order Successful!</h1>
-            <p className="text-gray-600 mb-8">{orderMessage}</p>
-            <Link href="/">
-              <button className="bg-black text-white px-6 py-3 rounded hover:bg-gray-900 transition">
-                Continue Shopping
-              </button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (orderStatus === 'error') {
-    return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <main className="container mx-auto px-4 py-16 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="text-red-600 text-6xl mb-4">✗</div>
-            <h1 className="text-3xl font-bold mb-4 text-red-600">Order Failed</h1>
-            <p className="text-gray-600 mb-8">{orderMessage}</p>
-            <button 
-              onClick={() => {
-                setOrderStatus(null);
-                setOrderMessage('');
-              }}
-              className="bg-black text-white px-6 py-3 rounded hover:bg-gray-900 transition mr-4"
-            >
-              Try Again
-            </button>
-            <Link href="/cart">
-              <button className="bg-gray-500 text-white px-6 py-3 rounded hover:bg-gray-600 transition">
-                Back to Cart
-              </button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -361,7 +237,7 @@ const [selectedRate, setSelectedRate] = useState(null);
           {/* Shipping Info */}
           <div className="bg-white shadow-md rounded-lg p-6">
             <h2 className="text-xl font-bold mb-4">Shipping Information</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form className="space-y-4">
               <div>
                 <label className="block mb-1 font-medium">Email</label>
                 <input
@@ -454,7 +330,6 @@ const [selectedRate, setSelectedRate] = useState(null);
               </div>
             </form>
           </div>
-          
 
           {/* Order Summary */}
           <div className="bg-white shadow-md rounded-lg p-6">
@@ -486,26 +361,25 @@ const [selectedRate, setSelectedRate] = useState(null);
                 <span>{currencySymbols[currency]}{convertedTotal.toFixed(2)}</span>
               </div>
               {shippingRates.length > 0 && (
-  <div className="mb-4">
-    <label className="block mb-1 font-medium">Select Shipping Method</label>
-    <select
-      className="w-full border border-gray-300 px-3 py-2 rounded"
-      value={selectedRate?.postage_type || ""}
-      onChange={(e) => {
-        const rate = shippingRates.find(r => r.postage_type === e.target.value);
-        setSelectedRate(rate);
-        setShippingCost(rate.total);
-      }}
-    >
-      {shippingRates.map((item, idx) => (
-        <option key={idx} value={item.postage_type}>
-          {item.postage_type} - {item.delivery_days} days - {currencySymbols[currency]}{(item.total * rate).toFixed(2)}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
-
+                <div className="mb-4">
+                  <label className="block mb-1 font-medium">Select Shipping Method</label>
+                  <select
+                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                    value={selectedRate?.postage_type || ""}
+                    onChange={(e) => {
+                      const rate = shippingRates.find(r => r.postage_type === e.target.value);
+                      setSelectedRate(rate);
+                      setShippingCost(rate.total);
+                    }}
+                  >
+                    {shippingRates.map((item, idx) => (
+                      <option key={idx} value={item.postage_type}>
+                        {item.postage_type} - {item.delivery_days} days - {currencySymbols[currency]}{(item.total * rate).toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex justify-between">
                 <span>Shipping</span>
@@ -525,16 +399,9 @@ const [selectedRate, setSelectedRate] = useState(null);
                 <span>Total</span>
                 <span>{currencySymbols[currency]}{grandTotal.toFixed(2)}</span>
               </div>
-              <div>
-                <label className="block mb-1 font-medium">Card Details</label>
-                <div className="border border-gray-300 p-3 rounded">
-                  <CardElement />
-                </div>
-              </div>
-
 
               <button
-                onClick={handleSubmit}
+                onClick={handleCheckout}
                 disabled={
                   !formData.email ||
                   !formData.firstName ||
@@ -543,15 +410,11 @@ const [selectedRate, setSelectedRate] = useState(null);
                   !formData.city ||
                   !formData.state ||
                   !formData.zipCode ||
-                  loadingShipping ||
-                  isProcessing
+                  loadingShipping
                 }
-                className="w-full bg-black text-white py-3 px-4 rounded hover:bg-gray-900 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-black text-white py-3 px-4 rounded hover:bg-gray-900 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isProcessing && (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                )}
-                {isProcessing ? 'Processing Order...' : 'Complete Order'}
+                Pay with Card
               </button>
             </div>
           </div>
