@@ -30,6 +30,10 @@ const OrderSchema = new mongoose.Schema(
     ],
 
     total: { type: Number, required: true },
+
+    tax: { type: Number, default: 0 },      
+    taxRate: { type: Number, default: 0 }, 
+
     shippingCost: { type: Number, default: 0 },
     status: { type: String, default: "pending", enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"] },
     
