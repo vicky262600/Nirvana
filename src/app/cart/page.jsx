@@ -19,6 +19,7 @@ const CartContent = () => {
   const dispatch = useDispatch();
 
   const items = useSelector(selectCartItems);
+  console.log(items);
   const total = useSelector(selectCartTotal);
 
   const { currency, rate } = useSelector((state) => state.currency);

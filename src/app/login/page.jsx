@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useDispatch } from 'react-redux';
 import { setUser } from '@/redux/userSlice'; 
@@ -10,6 +10,8 @@ import { Footer } from '@/components/footer/Footer';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/'; 
   const dispatch = useDispatch();
 
   const [form, setForm] = useState({
@@ -45,7 +47,7 @@ export default function LoginPage() {
       }
 
       dispatch(setUser(data.user));
-      router.push('/');
+      router.push(redirect);
     } catch (err) {
       setError(err.message);
       setShowForgot(true); // show forgot password if login fails
@@ -108,7 +110,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-gray-600">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-blue-600 hover:underline">
+            <Link href={`/register?redirect=${redirect || '/checkout'}`} className="text-blue-600 hover:underline">
               Register
             </Link>
           </p>

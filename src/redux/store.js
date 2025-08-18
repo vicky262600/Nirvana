@@ -1,44 +1,54 @@
-// redux/store.js
-import { configureStore } from '@reduxjs/toolkit';
-import cartReducer from './cartSlice';
-import userReducer from './userSlice'; 
-import currencyReducer from './currencySlice'
-
-export const store = configureStore({
-  reducer: {
-    cart: cartReducer,
-    user: userReducer,
-    currency: currencyReducer,
-  },
-});
-
-export default store;
-
-
-// redux/store.js
-// redux/store.js
+// // redux/store.js
 // import { configureStore } from '@reduxjs/toolkit';
-// import { persistStore, persistReducer } from 'redux-persist';
-// import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
 // import cartReducer from './cartSlice';
 // import userReducer from './userSlice'; 
-// import currencyReducer from './currencySlice';
-
-// const persistConfig = {
-//   key: 'root',
-//   storage,
-//   whitelist: ['cart'], // only persist the cart slice
-// };
-
-// const persistedCartReducer = persistReducer(persistConfig, cartReducer);
+// import currencyReducer from './currencySlice'
 
 // export const store = configureStore({
 //   reducer: {
-//     cart: persistedCartReducer,
+//     cart: cartReducer,
 //     user: userReducer,
 //     currency: currencyReducer,
 //   },
 // });
 
-// export const persistor = persistStore(store);
 // export default store;
+
+// redux/store.js
+import { configureStore } from '@reduxjs/toolkit';
+import cartReducer from './cartSlice';
+import userReducer from './userSlice';
+import currencyReducer from './currencySlice';
+
+import storage from 'redux-persist/lib/storage'; // defaults to localStorage
+import { persistReducer, persistStore } from 'redux-persist';
+import { combineReducers } from 'redux';
+
+// Combine all reducers
+const rootReducer = combineReducers({
+  cart: cartReducer,
+  user: userReducer,
+  currency: currencyReducer,
+});
+
+// Persist config
+const persistConfig = {
+  key: 'root',
+  storage,
+  whitelist: ['cart', 'user'], // ✅ Only persist cart & user (not currency)
+};
+
+// Wrap root reducer
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false, // redux-persist needs this
+    }),
+});
+
+export const persistor = persistStore(store);
+
+export default store;

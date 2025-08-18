@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { persistor } from './store'; // import persistor from your store.js
 
 const initialState = {
   currentUser: null,
@@ -13,6 +14,7 @@ const userSlice = createSlice({
     },
     logoutUser(state) {
       state.currentUser = null;
+      persistor.purge(); // ✅ clears persisted user (and cart if you want)
     },
   },
 });

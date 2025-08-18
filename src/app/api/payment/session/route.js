@@ -1,4 +1,5 @@
-// app/api/payment/session/route.js
+// app/api/stripe/session/route.js
+import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -6,20 +7,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const session_id = searchParams.get("session_id");
+    const sessionId = searchParams.get("session_id");
 
-    const session = await stripe.checkout.sessions.retrieve(session_id, {
-      expand: ["line_items"],
+    if (!sessionId) {
+      return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["payment_intent", "line_items"],
     });
 
-    return new Response(JSON.stringify(session), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(session);
+  } catch (error) {
+    console.error("Error retrieving session:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

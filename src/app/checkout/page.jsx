@@ -2,10 +2,12 @@
 
   import { useState, useEffect, useRef } from 'react';
   import Link from 'next/link';
+  import { useRouter } from 'next/navigation'; 
   import { useSelector, useDispatch } from 'react-redux';
   import { Header } from '@/components/header/Header';
   import { Footer } from '@/components/footer/Footer';
   import { clearCart } from '@/redux/cartSlice';
+
   import Script from 'next/script';
 
 
@@ -15,6 +17,9 @@
     const [isClient, setIsClient] = useState(false);
     const [shippingRates, setShippingRates] = useState([]);
     const [selectedRate, setSelectedRate] = useState(null);
+    const router = useRouter();
+    const user = useSelector((state) => state.user.currentUser); // adjust based on your slice
+    console.log(user);
 
     const items = useSelector((state) => state.cart.items);
     const { currency, rate } = useSelector((state) => state.currency);
@@ -224,6 +229,11 @@
     }, [formData.zipCode, formData.city, formData.state, formData.country, items, currency]);
 
     const handleCheckout = async () => {
+      if (!user) {
+        // User not logged in → redirect to login page
+        router.push("/login?redirect=/checkout");
+        return;
+      }
 
       if (!shippingCost) {
         alert('Sorry, no shipping is available for this address.');
@@ -239,7 +249,7 @@
       try {
         const convertedItems = items.map(item => ({
           ...item,
-          price: (item.price * rate).toFixed(2)  // convert CAD → selected currency
+          price: Number((item.price * rate).toFixed(2))  // convert CAD → selected currency
         }));
 
         const res = await fetch('/api/payment/stripe', {
@@ -251,8 +261,11 @@
           shipping: { 
             ...formData, 
             shippingCost: shippingCostConverted, // converted shipping
-            tax: tax // ✅ send tax
-          }
+            tax: tax,
+            taxRate: taxRate,
+            userId: user._id, 
+          },
+          grandTotal: grandTotal.toFixed(2)
         }),
       });
 

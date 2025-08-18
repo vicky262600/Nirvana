@@ -36,7 +36,7 @@ export async function POST(req) {
       }
     }
 
-    // 2️⃣ Build line_items
+    // 2️⃣ Build line_items with productId + image
     const line_items = items.map(item => {
       const product = products.find(p => p._id.toString() === item.productId);
 
@@ -46,10 +46,14 @@ export async function POST(req) {
           product_data: {
             name: product.title,
             description: `${item.selectedSize || ''} ${item.selectedColor || ''}`.trim(),
+            images: product.images?.length ? [product.images[0]] : [], // ✅ first image
           },
-          unit_amount: Math.round(Number(item.price) * 100), // already converted
+          unit_amount: Math.round(Number(item.price) * 100),
         },
         quantity: item.selectedQuantity,
+        // ✅ attach productId in metadata
+        // (you’ll be able to read it in checkout.session.completed webhook)
+        adjustable_quantity: { enabled: false }, // optional
       };
     });
 
@@ -79,24 +83,55 @@ export async function POST(req) {
 
     // 5️⃣ Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items,
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout`,
-      customer_email: shipping.email,
-      metadata: {
-        shippingName: `${shipping.firstName} ${shipping.lastName}`,
-        shippingAddress: shipping.address,
-        shippingCity: shipping.city,
-        shippingState: shipping.state,
-        shippingZip: shipping.zipCode,
-        shippingCountry: shipping.country,
-      },
-      shipping_address_collection: {
-        allowed_countries: ['CA', 'US'], // adjust based on your needs
-      },
-    });
+  payment_method_types: ["card"],
+  line_items,
+  mode: "payment",
+  success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+  cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout`,
+  customer_email: shipping.email,
+  metadata: {
+    shippingName: `${shipping.firstName} ${shipping.lastName}`,
+    shippingAddress: shipping.address,
+    shippingCity: shipping.city,
+    shippingState: shipping.state,
+    shippingZip: shipping.zipCode,
+    shippingCountry: shipping.country,
+    productIds: productIds.join(","),
+    userId: shipping.userId,
+    items: JSON.stringify(items.map(i => ({
+      productId: i.productId,
+      selectedSize: i.selectedSize,
+      selectedColor: i.selectedColor,
+      selectedQuantity: i.selectedQuantity,
+      title: i.title,
+      price: i.price
+    }))),
+    },
+  payment_intent_data: {
+    metadata: {
+      shippingName: `${shipping.firstName} ${shipping.lastName}`,
+      shippingAddress: shipping.address,
+      shippingCity: shipping.city,
+      shippingState: shipping.state,
+      shippingZip: shipping.zipCode,
+      shippingCountry: shipping.country,
+      productIds: productIds.join(","),
+      userId: shipping.userId,
+      items: JSON.stringify(items.map(i => ({
+        productId: i.productId,
+        selectedSize: i.selectedSize,
+        selectedColor: i.selectedColor,
+        selectedQuantity: i.selectedQuantity,
+        title: i.title,
+        price: i.price
+      }))),
+        },
+  },
+  shipping_address_collection: {
+    allowed_countries: ["CA", "US"],
+  },
+});
+
 
     return NextResponse.json({ url: session.url });
 

@@ -132,6 +132,8 @@ export async function POST(req) {
         items,
         total,
         shippingCost: shippingCost || 0,
+        tax: tax || 0,           // Add this
+        taxRate: taxRate || 0, 
         shippingInfo,
         status: "confirmed",
         paymentId: paymentId || null,

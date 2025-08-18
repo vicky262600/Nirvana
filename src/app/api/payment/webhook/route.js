@@ -1,23 +1,26 @@
-import { buffer } from "micro";
+// app/api/payment/webhook/route.js
 import Stripe from "stripe";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
-import Product from "@/models/Product";
-import Cart from "@/models/Cart";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-export const config = { api: { bodyParser: false } };
+
+export const config = {
+  api: {
+    bodyParser: false, // required for Stripe webhooks
+  },
+};
 
 export async function POST(req) {
-  await connectDB();
-
+  const buf = await req.arrayBuffer();
+  const rawBody = Buffer.from(buf);
   const sig = req.headers.get("stripe-signature");
-  const buf = await buffer(req);
 
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(
-      buf.toString(),
+      rawBody,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
@@ -26,67 +29,60 @@ export async function POST(req) {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
-  // Only handle successful checkout sessions
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
     try {
-      const shippingInfo = {
-        email: session.customer_email,
-        firstName: session.metadata.shippingName.split(" ")[0],
-        lastName: session.metadata.shippingName.split(" ")[1] || "",
-        address: session.metadata.shippingAddress,
-        city: session.metadata.shippingCity,
-        state: session.metadata.shippingState,
-        zipCode: session.metadata.shippingZip,
-        country: session.metadata.shippingCountry,
-      };
+      await connectDB();
 
-      // Parse items from metadata if you sent them, or fetch them from DB
-      // For example, you could store items as JSON in metadata.items
-      const items = JSON.parse(session.metadata.items || "[]");
+      // ✅ Parse items safely from JSON
+      const items = session.metadata.items
+        ? JSON.parse(session.metadata.items).map((i) => ({
+            productId: i.productId,
+            selectedSize: i.selectedSize,
+            selectedColor: i.selectedColor,
+            selectedQuantity: Number(i.selectedQuantity),
+            name: i.title,
+            price: Number(i.price),
+          }))
+        : [];
 
-      // Calculate totals
-      const total = items.reduce(
-        (acc, item) => acc + Number(item.price) * item.selectedQuantity,
-        0
-      );
-      const shippingCost = Number(session.metadata.shippingCost || 0);
-      const tax = Number(session.metadata.tax || 0);
-
-      // Update inventory
-      for (const item of items) {
-        const product = await Product.findById(item.productId);
-        if (!product) continue;
-        const variant = product.variants.find(
-          (v) => v.size === item.selectedSize && v.color === item.selectedColor
-        );
-        if (variant) {
-          variant.quantity -= item.selectedQuantity;
-          await product.save();
-        }
-      }
-
-      // Create order
-      const newOrder = await Order.create({
-        userId: session.metadata.userId, // you can pass userId via metadata
+      const order = new Order({
+        userId: session.client_reference_id || session.metadata.userId || null,
+        shippingInfo: {
+          email: session.customer_email,
+          firstName: session.metadata.shippingName?.split(" ")[0] || "",
+          lastName: session.metadata.shippingName?.split(" ")[1] || "",
+          address: session.metadata.shippingAddress || "",
+          city: session.metadata.shippingCity || "",
+          state: session.metadata.shippingState || "",
+          zipCode: session.metadata.shippingZip || "",
+          country: session.metadata.shippingCountry || "",
+        },
         items,
-        total,
-        shippingCost,
-        shippingInfo,
-        status: "confirmed",
+        total: session.amount_total / 100 || 0,
         paymentId: session.payment_intent,
         paymentStatus: "paid",
+        status: "confirmed",
       });
 
-      // Optionally, clear cart
-      await Cart.findOneAndDelete({ userId: session.metadata.userId });
+      console.log("Session metadata:", session.metadata);
+      console.log("Items parsed:", items);
+      console.log("Shipping info:", {
+        email: session.customer_email,
+        name: session.metadata.shippingName,
+        address: session.metadata.shippingAddress,
+      });
 
-      console.log("Order created successfully:", newOrder._id);
+      await order.save();
+      console.log("Order saved:", order._id);
+
+      return new Response(JSON.stringify({ received: true }), { status: 200 });
     } catch (err) {
-      console.error("Error creating order from webhook:", err);
+      console.error("Failed to create order:", err);
+      return new Response("Internal Server Error", { status: 500 });
     }
   }
 
-  return new Response("Webhook received", { status: 200 });
+  return new Response(JSON.stringify({ received: true }), { status: 200 });
 }

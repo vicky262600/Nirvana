@@ -1,13 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/checkout';
+
 
   const [form, setForm] = useState({
     firstName: '',
@@ -59,7 +62,7 @@ export default function RegisterPage() {
 
       if (!res.ok) throw new Error(data.message || 'Registration failed');
 
-      router.push('/login');
+      router.push(`/login?redirect=${redirect}`);
     } catch (err) {
       setError(err.message);
     } finally {
