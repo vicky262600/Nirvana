@@ -96,6 +96,7 @@ export async function POST(req) {
     shippingState: shipping.state,
     shippingZip: shipping.zipCode,
     shippingCountry: shipping.country,
+    postageType: shipping.postage_type,
     productIds: productIds.join(","),
     userId: shipping.userId,
     items: JSON.stringify(items.map(i => ({
@@ -106,6 +107,8 @@ export async function POST(req) {
       title: i.title,
       price: i.price
     }))),
+    tax: shipping.tax,
+    taxRate:shipping.taxRate,
     },
   payment_intent_data: {
     metadata: {
@@ -115,6 +118,8 @@ export async function POST(req) {
       shippingState: shipping.state,
       shippingZip: shipping.zipCode,
       shippingCountry: shipping.country,
+      shippingCost: shipping.shippingCost,
+      postageType: shipping.postage_type,
       productIds: productIds.join(","),
       userId: shipping.userId,
       items: JSON.stringify(items.map(i => ({
@@ -125,7 +130,9 @@ export async function POST(req) {
         title: i.title,
         price: i.price
       }))),
-        },
+      tax: shipping.tax,
+      taxRate:shipping.taxRate,
+      },
   },
   shipping_address_collection: {
     allowed_countries: ["CA", "US"],

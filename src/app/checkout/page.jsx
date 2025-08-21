@@ -19,7 +19,6 @@
     const [selectedRate, setSelectedRate] = useState(null);
     const router = useRouter();
     const user = useSelector((state) => state.user.currentUser); // adjust based on your slice
-    console.log(user);
 
     const items = useSelector((state) => state.cart.items);
     const { currency, rate } = useSelector((state) => state.currency);
@@ -263,7 +262,8 @@
             shippingCost: shippingCostConverted, // converted shipping
             tax: tax,
             taxRate: taxRate,
-            userId: user._id, 
+            userId: user._id,
+            postage_type: selectedRate.postage_type, 
           },
           grandTotal: grandTotal.toFixed(2)
         }),

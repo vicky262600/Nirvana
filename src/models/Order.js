@@ -39,6 +39,7 @@ const OrderSchema = new mongoose.Schema(
     
     // Payment fields
     paymentId: { type: String },
+    sessionId: { type: String },
     paymentStatus: { type: String, default: "pending", enum: ["pending", "paid", "failed", "refunded"] },
     
     // Tracking
