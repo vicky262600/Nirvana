@@ -17,9 +17,17 @@ async function releaseExpiredReservations() {
     for (const product of products) {
       let modified = false;
       for (const variant of product.variants) {
+        // Case 1: Expired reservation with valid timestamp
         if (variant.reservedUntil && variant.reservedUntil < now) {
           variant.reservedQuantity = 0;
           variant.reservedUntil = null;
+          modified = true;
+        }
+        // Case 2: Orphaned reservation (reservedQuantity > 0 but reservedUntil is null)
+        // This handles the bug where reservations get out of sync
+        else if (variant.reservedQuantity > 0 && !variant.reservedUntil) {
+          console.log(`Fixing orphaned reservation for product ${product._id}, variant ${variant.size}/${variant.color}: reservedQuantity=${variant.reservedQuantity}, reservedUntil=null`);
+          variant.reservedQuantity = 0;
           modified = true;
         }
       }

@@ -5,6 +5,7 @@ import Order from "@/models/Order";
 import Product from "@/models/Product";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
+import mongoose from "mongoose";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -42,8 +43,13 @@ export async function POST(req) {
     try {
       await connectDB();
 
-      // Parse items from Stripe metadata
-      const items = session.metadata.items ? JSON.parse(session.metadata.items) : [];
+      // Start a database transaction for atomicity
+      const dbSession = await mongoose.startSession();
+      dbSession.startTransaction();
+
+      try {
+        // Parse items from Stripe metadata
+        const items = session.metadata.items ? JSON.parse(session.metadata.items) : [];
 
       // Enrich items with product images from DB and update stock
       const enrichedItems = await Promise.all(
@@ -56,10 +62,18 @@ export async function POST(req) {
               (v) => v.size === cartItem.selectedSize && v.color === cartItem.selectedColor
             );
             if (variant) {
+              // Ensure we don't go below 0
+              const newReservedQuantity = Math.max((variant.reservedQuantity || 0) - Number(cartItem.selectedQuantity), 0);
+              
               variant.quantity -= Number(cartItem.selectedQuantity);
-              variant.reservedQuantity = Math.max((variant.reservedQuantity || 0) - cartItem.selectedQuantity, 0);
-              variant.reservedUntil = null;
-              await product.save();
+              variant.reservedQuantity = newReservedQuantity;
+              
+              // Only set reservedUntil to null if reservedQuantity is 0
+              if (newReservedQuantity === 0) {
+                variant.reservedUntil = null;
+              }
+              
+              await product.save({ session: dbSession });
             }
           }
 
@@ -186,8 +200,12 @@ export async function POST(req) {
       
       const order = new Order(orderData);
 
-      await order.save();
+      await order.save({ session: dbSession });
       console.log("Order saved with tracking and images:", order._id);
+
+      // Commit the transaction
+      await dbSession.commitTransaction();
+      console.log("Database transaction committed successfully");
 
       return new Response(JSON.stringify({ received: true }), { status: 200 });
     } catch (err) {
@@ -197,7 +215,20 @@ export async function POST(req) {
         stack: err.stack,
         response: err.response?.data
       });
+      
+      // Rollback the transaction on error
+      if (dbSession) {
+        await dbSession.abortTransaction();
+        console.log("Database transaction rolled back");
+      }
+      
       return new Response("Internal Server Error", { status: 500 });
+    } finally {
+      // End the session
+      if (dbSession) {
+        dbSession.endSession();
+        console.log("Database session ended");
+      }
     }
   }
 
