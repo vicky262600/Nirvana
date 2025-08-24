@@ -32,7 +32,8 @@ const OrderSchema = new mongoose.Schema(
     total: { type: Number, required: true },
 
     tax: { type: Number, default: 0 },      
-    taxRate: { type: Number, default: 0 }, 
+    taxRate: { type: Number, default: 0 },
+    currency: { type: String },
 
     shippingCost: { type: Number, default: 0 },
     status: { type: String, default: "pending", enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"] },
@@ -45,6 +46,9 @@ const OrderSchema = new mongoose.Schema(
     // Tracking
     trackingNumber: { type: String },
     estimatedDelivery: { type: Date },
+
+    reservedUntil: { type: Date }, // New
+
   },
   { timestamps: true }
 );

@@ -5,6 +5,8 @@ const VariantSchema = new mongoose.Schema({
   size: { type: String, required: true },
   color: { type: String, required: true },
   quantity: { type: Number, required: true, min: 0 },
+  reservedQuantity: { type: Number, default: 0 }, // reserved but not paid
+  reservedUntil: { type: Date },
 });
 
 // Product schema

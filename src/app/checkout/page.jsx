@@ -251,14 +251,12 @@
           price: Number((item.price * rate).toFixed(2))  // convert CAD → selected currency
         }));
 
-        const res = await fetch('/api/payment/stripe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        const requestBody = {
           items: convertedItems,
           currency,
           shipping: { 
-            ...formData, 
+            ...formData,
+            currency: currency,
             shippingCost: shippingCostConverted, // converted shipping
             tax: tax,
             taxRate: taxRate,
@@ -266,7 +264,14 @@
             postage_type: selectedRate.postage_type, 
           },
           grandTotal: grandTotal.toFixed(2)
-        }),
+        };
+
+        console.log('Sending to Stripe API:', requestBody);
+
+        const res = await fetch('/api/payment/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
       });
 
         const data = await res.json();
@@ -277,7 +282,7 @@
           alert('Failed to initiate payment. Please try again.');
         }
       } catch (error) {
-        console.error(error);
+        console.error("error is", error);
         alert('Something went wrong. Please try again.');
       }
     };

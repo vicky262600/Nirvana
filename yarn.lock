@@ -1951,6 +1951,11 @@ domutils@^3.0.1:
     domelementtype "^2.3.0"
     domhandler "^5.0.3"
 
+dotenv@^17.2.1:
+  version "17.2.1"
+  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-17.2.1.tgz#6f32e10faf014883515538dc922a0fb8765d9b32"
+  integrity sha512-kQhDYKZecqnM0fCnzI5eIv5L4cAe/iRI+HqMbO/hbRdTAeXDG+M9FjipUxNfbARuEg4iHIbhnhs78BCHNbSxEQ==
+
 dunder-proto@^1.0.0, dunder-proto@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz"
@@ -3582,6 +3587,11 @@ next@^15.3.5:
     "@next/swc-win32-x64-msvc" "15.3.5"
     sharp "^0.34.1"
 
+node-cron@^4.2.1:
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/node-cron/-/node-cron-4.2.1.tgz#6979be4aee4702f06322d21220df8de252c8e265"
+  integrity sha512-lgimEHPE/QDgFlywTd8yTR61ptugX3Qer29efeyWw2rv259HtGBNn1vZVmp8lB9uo9wC0t/AT4iGqXxia+CJFg==
+
 node-fetch@^2.6.9, node-fetch@^2.7.0:
   version "2.7.0"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.7.0.tgz#d0f0fa6e3e2dc1d27efcd8ad99d550bda94d187d"
@@ -3942,7 +3952,7 @@ readable-stream@^3.1.1:
     string_decoder "^1.1.1"
     util-deprecate "^1.0.1"
 
-redux-persist@^6.0.0:
+redux-persist@6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/redux-persist/-/redux-persist-6.0.0.tgz#b4d2972f9859597c130d40d4b146fecdab51b3a8"
   integrity sha512-71LLMbUq2r02ng2We9S215LtPu3fY0KgaGE0k8WRgl6RkqxtGfl7HUozz1Dftwsb0D/5mZ8dwAaPbtnzfvbEwQ==

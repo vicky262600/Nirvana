@@ -87,7 +87,7 @@ export async function OPTIONS(req) {
 
 export async function GET(req, { params }) {
   await connectDB();
-  const id = params.id;
+  const { id } = await params; // ✅ Add await here
 
   try {
     const product = await Product.findById(id);

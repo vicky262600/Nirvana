@@ -59,7 +59,7 @@ export async function POST(req) {
     // console.log('Stallion Payload:', JSON.stringify(stallionPayload, null, 2));
 
     // Call Stallion Express API:
-    const response = await fetch('https://ship.stallionexpress.ca/api/v4/rates', {
+    const response = await fetch('https://sandbox.stallionexpress.ca/api/v4/rates', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

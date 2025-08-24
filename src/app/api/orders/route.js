@@ -24,7 +24,7 @@ export async function POST(req) {
     }
 
     const userId = decoded.id;
-    const { items, total, shippingCost, shippingInfo, paymentId } = await req.json();
+    const { items, total, shippingCost, shippingInfo, paymentId, currency } = await req.json();
     
     console.log('Received order data:', {
       userId,
@@ -99,29 +99,29 @@ export async function POST(req) {
           throw new Error(`Variant not found for ${item.name} - Size: ${item.selectedSize}, Color: ${item.selectedColor}`);
         }
 
-        console.log('Found variant:', {
-          size: variant.size,
-          color: variant.color,
-          currentQuantity: variant.quantity,
-          requestedQuantity: item.selectedQuantity
-        });
+        // console.log('Found variant:', {
+        //   size: variant.size,
+        //   color: variant.color,
+        //   currentQuantity: variant.quantity,
+        //   requestedQuantity: item.selectedQuantity
+        // });
 
-        if (variant.quantity < item.selectedQuantity) {
-          throw new Error(`Insufficient inventory for ${item.name} - Size: ${item.selectedSize}, Color: ${item.selectedColor}. Available: ${variant.quantity}, Requested: ${item.selectedQuantity}`);
-        }
+        // if (variant.quantity < item.selectedQuantity) {
+        //   throw new Error(`Insufficient inventory for ${item.name} - Size: ${item.selectedSize}, Color: ${item.selectedColor}. Available: ${variant.quantity}, Requested: ${item.selectedQuantity}`);
+        // }
 
-        // Update inventory
-        const oldQuantity = variant.quantity;
-        variant.quantity -= item.selectedQuantity;
-        await product.save({ session });
+        // // Update inventory
+        // const oldQuantity = variant.quantity;
+        // variant.quantity -= item.selectedQuantity;
+        // await product.save({ session });
         
-        console.log('Inventory updated:', {
-          productId: product._id,
-          size: variant.size,
-          color: variant.color,
-          oldQuantity,
-          newQuantity: variant.quantity
-        });
+        // console.log('Inventory updated:', {
+        //   productId: product._id,
+        //   size: variant.size,
+        //   color: variant.color,
+        //   oldQuantity,
+        //   newQuantity: variant.quantity
+        // });
       }
 
       console.log('All inventory updates completed successfully');
@@ -131,6 +131,7 @@ export async function POST(req) {
         userId,
         items,
         total,
+        currency: currency,
         shippingCost: shippingCost || 0,
         tax: tax || 0,           // Add this
         taxRate: taxRate || 0, 

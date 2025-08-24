@@ -4,36 +4,40 @@ import connectDB from "@/lib/db";
 import Product from "@/models/Product";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const RESERVATION_DURATION = 6 * 60 * 1000;
 
 export async function POST(req) {
   await connectDB();
 
   try {
     const { items, currency, shipping } = await req.json();
-    console.log("Backend received:", items);
+    console.log("Backend received:", { items, currency, shipping });
 
     // 1️⃣ Inventory check
     const productIds = items.map(item => item.productId);
     const products = await Product.find({ _id: { $in: productIds } });
 
+    // 1️⃣ Reserve stock
     for (let cartItem of items) {
       const product = products.find(p => p._id.toString() === cartItem.productId);
       if (!product) {
-        return NextResponse.json(
-          { error: `Product not found: ${cartItem.productId}` },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: `Product not found: ${cartItem.productId}` }, { status: 400 });
       }
 
       const variant = product.variants.find(
         v => v.size === cartItem.selectedSize && v.color === cartItem.selectedColor
       );
-      if (!variant || variant.quantity < cartItem.selectedQuantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for ${product.title}` },
-          { status: 400 }
-        );
+
+      const availableStock = (variant.quantity || 0) - (variant.reservedQuantity || 0);
+
+      if (!variant || availableStock < cartItem.selectedQuantity) {
+        return NextResponse.json({ error: `Insufficient stock for ${product.title}` }, { status: 400 });
       }
+
+      // Update reservedQuantity and reservedUntil
+      variant.reservedQuantity = (variant.reservedQuantity || 0) + cartItem.selectedQuantity;
+      variant.reservedUntil = new Date(Date.now() + RESERVATION_DURATION);
+      await product.save();
     }
 
     // 2️⃣ Build line_items with productId + image
@@ -107,8 +111,10 @@ export async function POST(req) {
       title: i.title,
       price: i.price
     }))),
+    currency: shipping.currency,
     tax: shipping.tax,
     taxRate:shipping.taxRate,
+    shippingCost: shipping.shippingCost,
     },
   payment_intent_data: {
     metadata: {
@@ -130,8 +136,10 @@ export async function POST(req) {
         title: i.title,
         price: i.price
       }))),
+      currency: shipping.currency,
       tax: shipping.tax,
       taxRate:shipping.taxRate,
+      shippingCost: shipping.shippingCost,
       },
   },
   shipping_address_collection: {

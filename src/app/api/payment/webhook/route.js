@@ -2,6 +2,7 @@
 import Stripe from "stripe";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
+import Product from "@/models/Product";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 
@@ -14,6 +15,8 @@ export const config = {
 };
 
 export async function POST(req) {
+  console.log('Webhook received:', req.method, req.url);
+  
   const buf = await req.arrayBuffer();
   const rawBody = Buffer.from(buf);
   const sig = req.headers.get("stripe-signature");
@@ -31,67 +34,62 @@ export async function POST(req) {
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
+  console.log('Processing webhook event:', event.type);
+  
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
     try {
       await connectDB();
 
-      // ✅ Parse items safely from JSON
-      const items = session.metadata.items
-        ? JSON.parse(session.metadata.items).map((i) => ({
-            productId: i.productId,
-            selectedSize: i.selectedSize,
-            selectedColor: i.selectedColor,
-            selectedQuantity: Number(i.selectedQuantity),
-            title: i.title,
-            price: Number(i.price),
-          }))
-        : [];
+      // Parse items from Stripe metadata
+      const items = session.metadata.items ? JSON.parse(session.metadata.items) : [];
 
-      const order = new Order({
-        userId: session.client_reference_id || session.metadata.userId || null,
-        shippingInfo: {
-          email: session.customer_email,
-          firstName: session.metadata.shippingName?.split(" ")[0] || "",
-          lastName: session.metadata.shippingName?.split(" ")[1] || "",
-          address: session.metadata.shippingAddress || "",
-          city: session.metadata.shippingCity || "",
-          state: session.metadata.shippingState || "",
-          zipCode: session.metadata.shippingZip || "",
-          country: session.metadata.shippingCountry || "",
-        },
-        items,
-        total: session.amount_total / 100 || 0,
-        tax: Number(session.metadata.tax) || 0,        // ✅ save tax
-        taxRate: Number(session.metadata.taxRate) || 0,
-        shippingCost: session.metadata.shippingCost || 0,
-        paymentId: session.payment_intent,
-        sessionId: session.id,
-        paymentStatus: "paid",
-        status: "confirmed",
-      });
+      // Enrich items with product images from DB and update stock
+      const enrichedItems = await Promise.all(
+        items.map(async (cartItem) => {
+          const product = await Product.findById(cartItem.productId);
 
+          if (product) {
+            // Update stock & reserved quantity
+            const variant = product.variants.find(
+              (v) => v.size === cartItem.selectedSize && v.color === cartItem.selectedColor
+            );
+            if (variant) {
+              variant.quantity -= Number(cartItem.selectedQuantity);
+              variant.reservedQuantity = Math.max((variant.reservedQuantity || 0) - cartItem.selectedQuantity, 0);
+              variant.reservedUntil = null;
+              await product.save();
+            }
+          }
 
-      await order.save();
-      console.log("Order saved:", order._id);
+          return {
+            productId: cartItem.productId,
+            selectedSize: cartItem.selectedSize,
+            selectedColor: cartItem.selectedColor,
+            selectedQuantity: Number(cartItem.selectedQuantity),
+            title: cartItem.title,
+            price: Number(cartItem.price),
+            image: product?.images?.[0] || null, // first image from DB
+          };
+        })
+      );
 
-       // ✅ Prepare Stallion shipment payload
-        // ✅ Build Stallion payload
+      // Prepare Stallion shipment payload
       const shipmentPayload = {
         to_address: {
-          name: `${order.shippingInfo.firstName} ${order.shippingInfo.lastName}`,
-          address1: order.shippingInfo.address,
-          city: order.shippingInfo.city,
-          province_code: order.shippingInfo.state,
-          postal_code: order.shippingInfo.zipCode,
-          country_code: order.shippingInfo.country,
+          name: session.metadata.shippingName,
+          address1: session.metadata.shippingAddress,
+          city: session.metadata.shippingCity,
+          province_code: session.metadata.shippingState,
+          postal_code: session.metadata.shippingZip,
+          country_code: session.metadata.shippingCountry,
           phone: "1234567890",
-          email: order.shippingInfo.email,
+          email: session.customer_email,
           is_residential: true,
         },
         return_address: {
-          name: "Your Store Name",
+          name: "Nirvana",
           address1: "123 Main St",
           city: "Toronto",
           province_code: "ON",
@@ -103,12 +101,12 @@ export async function POST(req) {
         },
         is_return: false,
         weight_unit: "lbs",
-        weight: 1, // TODO: derive from cart items later
-        length: 9,
-        width: 12,
-        height: 1,
+        weight: 2, // TODO: calculate from cart items if needed
+        length: 30,
+        width: 20,
+        height: 5,
         size_unit: "cm",
-        items: order.items.map((item) => ({
+        items: enrichedItems.map((item) => ({
           description: item.title,
           sku: item.productId,
           quantity: item.selectedQuantity,
@@ -132,27 +130,13 @@ export async function POST(req) {
         insured: true,
       };
 
-      // ✅ Generate a unique Idempotency-Key
       const idempotencyKey = `${session.id}-${uuidv4()}`;
-      console.log(shipmentPayload);
 
-      // ✅ Send request to Stallion
-      // const stallionRes = await axios.post(
-      //   "https://ship.stallionexpress.ca/api/v4/shipments",
-      //   shipmentPayload,
-      //   {
-      //     headers: {
-      //       Authorization: `Bearer ${process.env.STALLION_API_KEY}`,
-      //       "Content-Type": "application/json",
-      //       "Idempotency-Key": idempotencyKey,
-      //     },
-      //   }
-      // );
-
-      // console.log("Stallion shipment created:", stallionRes.data);
+      // Call Stallion API
+      let trackingNumber = null;
       try {
         const stallionRes = await axios.post(
-          "https://ship.stallionexpress.ca/api/v4/shipments",
+          "https://sandbox.stallionexpress.ca/api/v4/shipments",
           shipmentPayload,
           {
             headers: {
@@ -162,18 +146,57 @@ export async function POST(req) {
             },
           }
         );
-      
-        console.log("Stallion response status:", stallionRes.status);
-        console.log("Stallion response headers:", stallionRes.headers);
-        console.log("Stallion response data:", stallionRes.data);
+        trackingNumber = stallionRes.data.shipment?.tracking_code || null;
+        console.log("Stallion tracking number:", trackingNumber);
       } catch (err) {
         console.error("Stallion request failed:", err.response?.data || err.message);
       }
+
+      // Debug: Log the session metadata
+      console.log('Session metadata:', session.metadata);
+      console.log('Session currency:', session.currency);
       
+      // Create order with tracking number and enriched items
+      const orderData = {
+        userId: session.client_reference_id || session.metadata.userId || null,
+        shippingInfo: {
+          email: session.customer_email,
+          firstName: session.metadata.shippingName?.split(" ")[0] || "",
+          lastName: session.metadata.shippingName?.split(" ")[1] || "",
+          address: session.metadata.shippingAddress,
+          city: session.metadata.shippingCity,
+          state: session.metadata.shippingState,
+          zipCode: session.metadata.shippingZip,
+          country: session.metadata.shippingCountry,
+        },
+        items: enrichedItems,
+        tax: Number(session.metadata.tax) || 0,
+        currency: (session.metadata.currency || "USD").toUpperCase(),
+        total: session.amount_total / 100 || 0,
+        taxRate: Number(session.metadata.taxRate) || 0,
+        shippingCost: session.metadata.shippingCost || 0,
+        paymentId: session.payment_intent,
+        sessionId: session.id,
+        paymentStatus: "paid",
+        status: "confirmed",
+        trackingNumber,
+      };
+
+      console.log('Creating order with data:', orderData);
+      
+      const order = new Order(orderData);
+
+      await order.save();
+      console.log("Order saved with tracking and images:", order._id);
 
       return new Response(JSON.stringify({ received: true }), { status: 200 });
     } catch (err) {
-      console.error("Failed to create order:", err);
+      console.error("Order creation failed:", err);
+      console.error("Error details:", {
+        message: err.message,
+        stack: err.stack,
+        response: err.response?.data
+      });
       return new Response("Internal Server Error", { status: 500 });
     }
   }
