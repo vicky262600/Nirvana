@@ -103,15 +103,15 @@ export async function POST(req) {
           is_residential: true,
         },
         return_address: {
-          name: "Nirvana",
-          address1: "123 Main St",
-          city: "Toronto",
+          name: "Vikas Joshi",
+          address1: "7268 Line 9",
+          city: "Beeton",
           province_code: "ON",
-          postal_code: "M5V 2H1",
+          postal_code: "L0G 1A0",
           country_code: "CA",
-          phone: "111-222-3333",
-          email: "support@yourstore.com",
-          is_residential: false,
+          phone: "2268864692",
+          email: "vikasjoshi2604@gmail.com",
+          is_residential: true,
         },
         is_return: false,
         weight_unit: "lbs",
@@ -142,6 +142,11 @@ export async function POST(req) {
         is_fba: false,
         is_draft: false,
         insured: true,
+        tax_identifier: {
+          tax_type: "IOSS",
+          number: "IM1234567890",
+          issuing_authority: "CA"
+        },
       };
 
       const idempotencyKey = `${session.id}-${uuidv4()}`;
@@ -150,7 +155,7 @@ export async function POST(req) {
       let trackingNumber = null;
       try {
         const stallionRes = await axios.post(
-          "https://sandbox.stallionexpress.ca/api/v4/shipments",
+          "https://ship.stallionexpress.ca/api/v4/shipments",
           shipmentPayload,
           {
             headers: {

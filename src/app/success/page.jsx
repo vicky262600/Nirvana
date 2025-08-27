@@ -66,7 +66,7 @@ export default function Success() {
             Continue Shopping
           </button>
           <button
-            onClick={() => router.push('/orders')}
+            onClick={() => router.push('/account')}
             className="flex-1 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 transition"
           >
             View My Orders

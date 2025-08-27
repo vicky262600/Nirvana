@@ -139,6 +139,30 @@ export default function AccountPage() {
     return null; // Item not found in any return request
   };
 
+  const getRefundInfo = (order, item) => {
+    const existingRequests = returnRequests.filter(req => {
+      const requestOrderId = req.orderId._id || req.orderId;
+      return requestOrderId === order._id;
+    });
+
+    for (const request of existingRequests) {
+      const foundItem = request.items.find(requestItem => 
+        requestItem.productId === item.productId && 
+        requestItem.selectedSize === item.selectedSize && 
+        requestItem.selectedColor === item.selectedColor
+      );
+      
+      if (foundItem && request.refundPercentage && request.refundAmount) {
+        return {
+          percentage: request.refundPercentage,
+          amount: request.refundAmount.toFixed(2)
+        };
+      }
+    }
+    
+    return null;
+  };
+
   if (!user) return null;
 
   return (
@@ -227,6 +251,11 @@ export default function AccountPage() {
                                isItemRequestedForReturn(order, item) === 'rejected' ? 'Rejected' :
                                isItemRequestedForReturn(order, item) === 'refunded' ? 'Refunded' :
                                'Unknown'}
+                            </span>
+                          )}
+                          {isItemRequestedForReturn(order, item) && getRefundInfo(order, item) && (
+                            <span className="ml-2 text-xs text-gray-600">
+                              ({getRefundInfo(order, item).percentage}% refund - {order.currency || 'USD'} {getRefundInfo(order, item).amount})
                             </span>
                           )}
                         </p>

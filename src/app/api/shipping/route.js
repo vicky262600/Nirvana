@@ -24,11 +24,11 @@ export async function POST(req) {
         is_residential: true,
       },
       is_return: false,
-      weight_unit: "kg",
-      weight: 1, // example weight calculation
+      weight_unit: "lbs",
+      weight: 2, // example weight calculation
       length: 30,
       width: 20,
-      height: 1.5,
+      height: 5,
       size_unit: "cm",
       items: line_items.map(item => ({
         description: item.description,
@@ -47,19 +47,19 @@ export async function POST(req) {
       })),
       package_type: "Parcel",
       postage_types: [],
-      signature_confirmation: true,
+      signature_confirmation: false,
       insured: true,
       tax_identifier: {
         tax_type: "IOSS",
         number: "IM1234567890",
-        issuing_authority: "GB"
+        issuing_authority: "CA"
       }
     };
 
     // console.log('Stallion Payload:', JSON.stringify(stallionPayload, null, 2));
 
     // Call Stallion Express API:
-    const response = await fetch('https://sandbox.stallionexpress.ca/api/v4/rates', {
+    const response = await fetch('https://ship.stallionexpress.ca/api/v4/rates', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

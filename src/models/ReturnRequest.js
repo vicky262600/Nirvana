@@ -34,6 +34,18 @@ const ReturnRequestSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected", "refunded"],
       default: "pending",
     },
+    refundPercentage: {
+      type: Number,
+      default: 100, // Default to full refund
+      min: 0,
+      max: 100
+    },
+    refundAmount: {
+      type: Number, // Calculated refund amount
+    },
+    refundReason: {
+      type: String, // Admin's reason for partial refund
+    }
   },
   { timestamps: true }
 );

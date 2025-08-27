@@ -213,6 +213,17 @@ const ReturnRequestForm = ({ order, userId, onClose, onSuccess }) => {
             </div>
           </div>
 
+          {/* Refund Information */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-medium text-blue-900 mb-2">Refund Information</h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p>• Your return request will be reviewed by our team</p>
+              <p>• Refund amount will be determined based on item condition</p>
+              <p>• You'll receive a full or partial refund as appropriate</p>
+              <p>• Refund will be processed to your original payment method</p>
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-4">
             <Button
               type="submit"
