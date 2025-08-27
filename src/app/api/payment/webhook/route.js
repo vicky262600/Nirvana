@@ -39,17 +39,17 @@ export async function POST(req) {
   
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+    let dbSession = null; // Declare outside try block
 
     try {
       await connectDB();
 
       // Start a database transaction for atomicity
-      const dbSession = await mongoose.startSession();
+      dbSession = await mongoose.startSession();
       dbSession.startTransaction();
 
-      try {
-        // Parse items from Stripe metadata
-        const items = session.metadata.items ? JSON.parse(session.metadata.items) : [];
+      // Parse items from Stripe metadata
+      const items = session.metadata.items ? JSON.parse(session.metadata.items) : [];
 
       // Enrich items with product images from DB and update stock
       const enrichedItems = await Promise.all(
@@ -217,7 +217,7 @@ export async function POST(req) {
       });
       
       // Rollback the transaction on error
-      if (dbSession) {
+      if (dbSession && dbSession.inTransaction()) {
         await dbSession.abortTransaction();
         console.log("Database transaction rolled back");
       }
@@ -226,11 +226,12 @@ export async function POST(req) {
     } finally {
       // End the session
       if (dbSession) {
-        dbSession.endSession();
+        await dbSession.endSession();
         console.log("Database session ended");
       }
     }
   }
 
+  // Handle other webhook event types
   return new Response(JSON.stringify({ received: true }), { status: 200 });
 }

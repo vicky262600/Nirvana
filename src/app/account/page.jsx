@@ -7,6 +7,7 @@ import { logoutUser } from '@/redux/userSlice';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 import { Button } from '@/components/ui/button';
+import ReturnRequestForm from '@/components/ReturnRequestForm';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function AccountPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAllOrders, setShowAllOrders] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnRequests, setReturnRequests] = useState([]);
 
   useEffect(() => {
     if (!user) {
@@ -40,12 +44,99 @@ export default function AccountPage() {
       }
     };
 
+    const fetchReturnRequests = async () => {
+      try {
+        const res = await fetch(`/api/returns?userId=${user._id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setReturnRequests(data.requests || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch return requests:', err);
+      }
+    };
+
     fetchOrders();
+    fetchReturnRequests();
   }, [user, router]);
 
   const handleLogout = () => {
     dispatch(logoutUser());
     router.push('/');
+  };
+
+  const getReturnStatus = (orderId) => {
+    const request = returnRequests.find(req => req.orderId === orderId);
+    if (!request) return null;
+    return request.status;
+  };
+
+  const getReturnStatusBadge = (status) => {
+    const statusConfig = {
+      pending: { text: 'Return Pending', className: 'bg-yellow-100 text-yellow-800' },
+      approved: { text: 'Return Approved', className: 'bg-blue-100 text-blue-800' },
+      rejected: { text: 'Return Rejected', className: 'bg-red-100 text-red-800' },
+      refunded: { text: 'Refunded', className: 'bg-green-100 text-green-800' }
+    };
+    
+    const config = statusConfig[status] || statusConfig.pending;
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.className}`}>
+        {config.text}
+      </span>
+    );
+  };
+
+  const getReturnableItems = (order) => {
+    const existingRequests = returnRequests.filter(req => {
+      // Handle both populated objects and string IDs
+      const requestOrderId = req.orderId._id || req.orderId;
+      return requestOrderId === order._id;
+    });
+    
+    // Create a set of already returned items using direct field comparison
+    const alreadyReturnedItems = new Set();
+    existingRequests.forEach(request => {
+      request.items.forEach(item => {
+        // Create a unique identifier using the core fields
+        const itemKey = `${item.productId || item.title}-${item.selectedSize || ''}-${item.selectedColor || ''}`;
+        alreadyReturnedItems.add(itemKey);
+      });
+    });
+    
+    // Filter out items that are already being returned
+    const returnableItems = order.items.filter(item => {
+      const itemKey = `${item.productId || item.title}-${item.selectedSize || ''}-${item.selectedColor || ''}`;
+      return !alreadyReturnedItems.has(itemKey);
+    });
+    
+    return returnableItems;
+  };
+
+  const hasReturnableItems = (order) => {
+    const returnableItems = getReturnableItems(order);
+    return returnableItems.length > 0;
+  };
+
+  const isItemRequestedForReturn = (order, item) => {
+    const existingRequests = returnRequests.filter(req => {
+      const requestOrderId = req.orderId._id || req.orderId;
+      return requestOrderId === order._id;
+    });
+    
+    for (const request of existingRequests) {
+      const foundItem = request.items.find(requestItem => 
+        requestItem.productId === item.productId && 
+        requestItem.selectedSize === item.selectedSize && 
+        requestItem.selectedColor === item.selectedColor
+      );
+      
+      if (foundItem) {
+        return request.status; // Return the actual status
+      }
+    }
+    
+    return null; // Item not found in any return request
   };
 
   if (!user) return null;
@@ -121,9 +212,24 @@ export default function AccountPage() {
                   {/* Titles & size */}
                   <div className="flex-1 flex flex-col md:ml-4 gap-1">
                     {order.items.map((item, idx) => (
-                      <p key={idx} className="text-sm font-medium">
-                        {item.title} - Size: {item.selectedSize} - Qty: {item.selectedQuantity}
-                      </p>
+                                              <p key={idx} className="text-sm font-medium">
+                          {item.title} - Size: {item.selectedSize} - Qty: {item.selectedQuantity}
+                          {isItemRequestedForReturn(order, item) && (
+                            <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                              isItemRequestedForReturn(order, item) === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              isItemRequestedForReturn(order, item) === 'approved' ? 'bg-blue-100 text-blue-800' :
+                              isItemRequestedForReturn(order, item) === 'rejected' ? 'bg-red-100 text-red-800' :
+                              isItemRequestedForReturn(order, item) === 'refunded' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              Return Status: {isItemRequestedForReturn(order, item) === 'pending' ? 'Pending' :
+                               isItemRequestedForReturn(order, item) === 'approved' ? 'Approved' :
+                               isItemRequestedForReturn(order, item) === 'rejected' ? 'Rejected' :
+                               isItemRequestedForReturn(order, item) === 'refunded' ? 'Refunded' :
+                               'Unknown'}
+                            </span>
+                          )}
+                        </p>
                     ))}
                   </div>
 
@@ -150,12 +256,41 @@ export default function AccountPage() {
                       {order.currency || 'USD'} {order.total.toFixed(2)}
                     </p>
                     <div className="flex gap-2 flex-wrap">
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/returns/${order._id}`)}
-                      >
-                        Request Return/Refund
-                      </Button>
+                      {/* Return Status Section */}
+                      {getReturnStatus(order._id) && (
+                        <div className="w-full mb-3">
+                          <div className="flex items-center gap-2">
+                            {getReturnStatusBadge(getReturnStatus(order._id))}
+                            <span className="text-sm text-gray-600">
+                              {getReturnStatus(order._id) === 'pending' && 'Return request submitted'}
+                              {getReturnStatus(order._id) === 'approved' && 'Return approved, processing refund'}
+                              {getReturnStatus(order._id) === 'rejected' && 'Return request rejected'}
+                              {getReturnStatus(order._id) === 'refunded' && 'Refund processed'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Action Buttons */}
+                      {hasReturnableItems(order) ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setShowReturnForm(true);
+                          }}
+                          className="hover:bg-gray-50"
+                        >
+                          Request Return/Refund
+                        </Button>
+                      ) : (
+                        // Show disabled button with better styling when no items can be returned
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 bg-gray-100 rounded-md border border-gray-200">
+                          <span>✓</span>
+                          <span>All items returned</span>
+                        </div>
+                      )}
+                      
                       <Button
                         variant="outline"
                         onClick={() =>
@@ -195,6 +330,42 @@ export default function AccountPage() {
         </div>
       </main>
       <Footer />
+      {showReturnForm && selectedOrder && (
+        <ReturnRequestForm
+          order={selectedOrder}
+          userId={user._id}
+          onClose={() => {
+            setShowReturnForm(false);
+            setSelectedOrder(null);
+          }}
+          onSuccess={() => {
+            // Refresh orders and return requests to show updated status
+            const refreshData = async () => {
+              try {
+                // Refresh orders
+                const ordersRes = await fetch(`/api/orders?userId=${user._id}`);
+                if (ordersRes.ok) {
+                  const ordersData = await ordersRes.json();
+                  const sortedOrders = (ordersData.orders || []).sort((a, b) => 
+                    new Date(b.createdAt) - new Date(a.createdAt)
+                  );
+                  setOrders(sortedOrders);
+                }
+
+                // Refresh return requests
+                const returnsRes = await fetch(`/api/returns?userId=${user._id}`);
+                if (returnsRes.ok) {
+                  const returnsData = await returnsRes.json();
+                  setReturnRequests(returnsData.requests || []);
+                }
+              } catch (err) {
+                console.error('Failed to refresh data:', err);
+              }
+            };
+            refreshData();
+          }}
+        />
+      )}
     </>
   );
 }
