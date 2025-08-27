@@ -46,6 +46,7 @@ const OrderSchema = new mongoose.Schema(
     // Tracking
     trackingNumber: { type: String },
     estimatedDelivery: { type: Date },
+    postageType: { type: String }, // Store the original postage type used
 
     reservedUntil: { type: Date }, // New
 

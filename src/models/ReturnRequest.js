@@ -45,6 +45,9 @@ const ReturnRequestSchema = new mongoose.Schema(
     },
     refundReason: {
       type: String, // Admin's reason for partial refund
+    },
+    returnTrackingNumber: {
+      type: String, // Stallion return shipment tracking number
     }
   },
   { timestamps: true }

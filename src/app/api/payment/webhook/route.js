@@ -199,6 +199,7 @@ export async function POST(req) {
         paymentStatus: "paid",
         status: "confirmed",
         trackingNumber,
+        postageType: session.metadata.postageType || "USPS First Class Mail",
       };
 
       console.log('Creating order with data:', orderData);
