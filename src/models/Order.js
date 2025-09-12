@@ -42,6 +42,9 @@ const OrderSchema = new mongoose.Schema(
     paymentId: { type: String },
     sessionId: { type: String },
     paymentStatus: { type: String, default: "pending", enum: ["pending", "paid", "failed", "refunded"] },
+    stripeInvoiceId: { type: String }, // Stripe invoice ID for sending invoices
+    invoiceUrl: { type: String }, // Hosted invoice URL for customer access
+    invoicePdfUrl: { type: String }, // PDF download URL for customer access
     
     // Tracking
     trackingNumber: { type: String },

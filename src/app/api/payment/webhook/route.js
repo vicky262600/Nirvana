@@ -83,8 +83,11 @@ export async function POST(req) {
             selectedColor: cartItem.selectedColor,
             selectedQuantity: Number(cartItem.selectedQuantity),
             title: cartItem.title,
-            price: Number(cartItem.price),
+            price: Number(cartItem.price), // Keep this for now, but we'll use DB price for invoice
             image: product?.images?.[0] || null, // first image from DB
+            // Store the original session price for debugging
+            sessionPrice: Number(cartItem.price),
+            // We'll use the correct price from the order data for invoices
           };
         })
       );
@@ -104,8 +107,8 @@ export async function POST(req) {
         },
         return_address: {
           name: "Vikas Joshi",
-          address1: "7268 Line 9",
-          city: "Beeton",
+          address1: "7268 9TH LINE",
+          city: "BEETON",
           province_code: "ON",
           postal_code: "L0G 1A0",
           country_code: "CA",
@@ -128,11 +131,11 @@ export async function POST(req) {
           currency: "CAD",
           country_of_origin: "CA",
           hs_code: "123456",
-          manufacturer_name: "Your Company",
-          manufacturer_address1: "123 Manufacturing Blvd",
-          manufacturer_city: "Toronto",
+          manufacturer_name: "ARCH",
+          manufacturer_address1: "7268 9TH LINE",
+          manufacturer_city: "BEETON",
           manufacturer_province_code: "ON",
-          manufacturer_postal_code: "M5V 2H1",
+          manufacturer_postal_code: "L0G 1A0",
           manufacturer_country_code: "CA",
         })),
         package_type: "Parcel",
@@ -140,7 +143,7 @@ export async function POST(req) {
         postage_type: session.metadata.postageType || "USPS First Class Mail",
         label_format: "pdf",
         is_fba: false,
-        is_draft: false,
+        is_draft: true,
         insured: true,
         tax_identifier: {
           tax_type: "IOSS",
@@ -209,9 +212,64 @@ export async function POST(req) {
       await order.save({ session: dbSession });
       console.log("Order saved with tracking and images:", order._id);
 
+      // Note: Invoice creation removed to prevent duplicate transactions
+      // The customer already paid through Stripe Checkout, so no separate invoice is needed
+      console.log("Order created successfully without invoice (payment already processed)");
+      
+      // Get the proper Stripe receipt URL
+      try {
+        // Retrieve the payment intent to get the receipt URL
+        const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+        
+        if (paymentIntent.latest_charge) {
+          const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
+          // Use the proper receipt URL format
+          order.invoiceUrl = charge.receipt_url;
+          order.invoicePdfUrl = charge.receipt_url;
+          
+          console.log("Receipt URLs set:", {
+            invoiceUrl: order.invoiceUrl,
+            invoicePdfUrl: order.invoicePdfUrl,
+            paymentIntentId: session.payment_intent,
+            chargeId: paymentIntent.latest_charge,
+            receiptNumber: charge.receipt_url?.split('/').pop() || 'N/A'
+          });
+        } else {
+          // Fallback to dashboard URL
+          order.invoiceUrl = `https://dashboard.stripe.com/payments/${session.payment_intent}`;
+          order.invoicePdfUrl = `https://dashboard.stripe.com/payments/${session.payment_intent}`;
+        }
+      } catch (error) {
+        console.error("Error getting receipt URL:", error);
+        // Fallback to dashboard URL
+        order.invoiceUrl = `https://dashboard.stripe.com/payments/${session.payment_intent}`;
+        order.invoicePdfUrl = `https://dashboard.stripe.com/payments/${session.payment_intent}`;
+      }
+      
+      // Save the order with receipt URLs
+      await order.save({ session: dbSession });
+      console.log("Order saved with receipt URLs:", {
+        id: order._id,
+        invoiceUrl: order.invoiceUrl,
+        invoicePdfUrl: order.invoicePdfUrl
+      });
+
       // Commit the transaction
       await dbSession.commitTransaction();
       console.log("Database transaction committed successfully");
+      
+      // Final verification that the order data persisted
+      try {
+        const finalOrder = await Order.findById(order._id);
+        console.log("Final order verification after commit:", {
+          id: finalOrder._id,
+          stripeInvoiceId: finalOrder.stripeInvoiceId,
+          invoiceUrl: finalOrder.invoiceUrl,
+          invoicePdfUrl: finalOrder.invoicePdfUrl
+        });
+      } catch (verifyError) {
+        console.error("Final verification failed:", verifyError);
+      }
 
       return new Response(JSON.stringify({ received: true }), { status: 200 });
     } catch (err) {

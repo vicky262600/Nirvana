@@ -36,6 +36,13 @@ export default function AccountPage() {
         const sortedOrders = (data.orders || []).sort((a, b) => 
           new Date(b.createdAt) - new Date(a.createdAt)
         );
+        
+        console.log('Fetched orders:', sortedOrders.map(order => ({
+          id: order._id,
+          invoiceUrl: order.invoiceUrl,
+          hasInvoice: !!order.invoiceUrl
+        })));
+        
         setOrders(sortedOrders);
       } catch (err) {
         console.error(err);
@@ -179,7 +186,42 @@ export default function AccountPage() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Order History</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Order History</h2>
+            <Button
+              onClick={() => {
+                setLoading(true);
+                const fetchOrders = async () => {
+                  try {
+                    const res = await fetch(`/api/orders?userId=${user._id}`);
+                    if (!res.ok) throw new Error('Failed to fetch orders');
+                    const data = await res.json();
+                    const sortedOrders = (data.orders || []).sort((a, b) => 
+                      new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    
+                    console.log('Refreshed orders:', sortedOrders.map(order => ({
+                      id: order._id,
+                      invoiceUrl: order.invoiceUrl,
+                      hasInvoice: !!order.invoiceUrl,
+                      createdAt: order.createdAt
+                    })));
+                    
+                    setOrders(sortedOrders);
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setLoading(false);
+                  }
+                };
+                fetchOrders();
+              }}
+              variant="outline"
+              size="sm"
+            >
+              🔄 Refresh Orders
+            </Button>
+          </div>
           
           {/* Order Summary */}
           {orders.length > 0 && (
@@ -333,6 +375,37 @@ export default function AccountPage() {
                       >
                         Track Order
                       </Button>
+                      
+                      {/* Invoice/Receipt Button */}
+                      {order.invoiceUrl ? (
+                        <div className="w-full">
+                          <Button
+                            variant="outline"
+                            onClick={() => window.open(order.invoiceUrl, "_blank")}
+                            size="sm"
+                            className="w-full mb-2"
+                          >
+                            📄 View Receipt
+                          </Button>
+                          <p className="text-xs text-gray-600 text-center">
+                            Click to view your payment receipt
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                          <Button
+                            variant="outline"
+                            disabled
+                            size="sm"
+                            className="w-full mb-2 opacity-50"
+                          >
+                            📄 Receipt Not Available
+                          </Button>
+                          <p className="text-xs text-gray-500 text-center">
+                            Receipt will be available after payment
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

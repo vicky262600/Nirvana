@@ -37,6 +37,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -215,7 +216,15 @@ const ProductDetail = () => {
             {/* Size Selection */}
             {uniqueSizes.length > 0 && (
               <div>
-                <h3 className="font-medium mb-2">Size</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium">Size</h3>
+                  <button
+                    onClick={() => setShowSizeGuide(true)}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                  >
+                    Size Guide
+                  </button>
+                </div>
                 <div className="flex gap-2 flex-wrap">
                   {uniqueSizes.map((size) => {
                     const available = isSizeAvailable(size);
@@ -302,10 +311,6 @@ const ProductDetail = () => {
               Add to Cart
             </Button>
 
-            <Button className="w-full mt-4" disabled>
-              Buy It Now
-            </Button>
-
             {/* Extra Info */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t">
               <div className="flex items-center gap-3">
@@ -333,6 +338,54 @@ const ProductDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Size Guide Modal */}
+      {showSizeGuide && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto shadow-xl border">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Size Guide</h2>
+              <button 
+                onClick={() => setShowSizeGuide(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="border-b pb-2">
+                  <h3 className="font-medium text-lg">S</h3>
+                  <p className="text-sm text-gray-600">Chest: 46", Sleeves Length: 23", Length: 26"</p>
+                </div>
+                
+                <div className="border-b pb-2">
+                  <h3 className="font-medium text-lg">M</h3>
+                  <p className="text-sm text-gray-600">Chest: 48", Sleeves Length: 24", Length: 27"</p>
+                </div>
+                
+                <div className="border-b pb-2">
+                  <h3 className="font-medium text-lg">L</h3>
+                  <p className="text-sm text-gray-600">Chest: 50", Sleeves Length: 25", Length: 28"</p>
+                </div>
+                
+                <div className="pb-2">
+                  <h3 className="font-medium text-lg">XL</h3>
+                  <p className="text-sm text-gray-600">Chest: 52", Sleeves Length: 26", Length: 29"</p>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Tip:</strong> Choose a size 6 to 8 inches more than your actual chest size for a comfortable fit.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

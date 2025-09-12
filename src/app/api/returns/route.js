@@ -57,10 +57,26 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "Order not found" }), { status: 404 });
     }
 
+    // Map the return items to use actual order prices instead of product database prices
+    const orderItems = order.items;
+    const returnItemsWithActualPrices = items.map(returnItem => {
+      // Find the corresponding order item
+      const orderItem = orderItems.find(oi => 
+        oi.productId.toString() === returnItem.productId &&
+        oi.selectedSize === returnItem.selectedSize &&
+        oi.selectedColor === returnItem.selectedColor
+      );
+      
+      return {
+        ...returnItem,
+        price: orderItem ? orderItem.price : returnItem.price // Use actual order price, fallback to product price
+      };
+    });
+
     const request = new ReturnRequest({
       orderId,
       userId,
-      items,
+      items: returnItemsWithActualPrices,
       reason,
       description: description || "",
     });
@@ -86,8 +102,8 @@ export async function POST(req) {
         },
         return_address: {
           name: "Vikas Joshi",
-          address1: "7268 Line 9",
-          city: "Beeton",
+          address1: "7268 9TH LINE",
+          city: "BEETON",
           province_code: "ON",
           postal_code: "L0G 1A0",
           country_code: "CA",
