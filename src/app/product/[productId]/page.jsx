@@ -23,6 +23,7 @@ import 'swiper/css/navigation';
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; 
 import { useSelector } from 'react-redux';
+import ProductDetailSkeleton from '@/components/skeleton/ProductDetailSkeleton';
 
 
 
@@ -32,6 +33,7 @@ const ProductDetail = () => {
   const { currency, rate } = useSelector((state) => state.currency);
 
   const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -42,6 +44,7 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
+        setLoading(true);
         const res = await fetch(`/api/products/${productId}`);
         if (!res.ok) throw new Error('Failed to fetch product');
         const data = await res.json();
@@ -52,6 +55,8 @@ const ProductDetail = () => {
         if (firstColor) setSelectedColor(firstColor);
       } catch (err) {
         console.error('Error fetching product:', err.message);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -103,6 +108,10 @@ const ProductDetail = () => {
       })
     );
   };
+
+  if (loading) {
+    return <ProductDetailSkeleton />;
+  }
 
   if (!product) {
     return (
