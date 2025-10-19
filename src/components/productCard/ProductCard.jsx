@@ -27,7 +27,7 @@ const ProductCard = ({ product }) => {
           className="w-full h-48 sm:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
         />
 
-        {product.isNew && (
+        {(product.isNewProduct || product.isNew) && (
           <span className="absolute top-2 left-2 bg-black text-white px-2 py-1 text-xs rounded">
             New
           </span>

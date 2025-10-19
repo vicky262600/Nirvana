@@ -110,9 +110,9 @@ export async function GET(req, { params }) {
 }
 
 // Update product (only admin)
-export async function PUT(req, context) {
+export async function PUT(req, { params }) {
   await connectDB();
-  const { id } = context.params;
+  const { id } = await params;
 
   const token = req.cookies.get("token")?.value;
   if (!token) {
@@ -216,7 +216,7 @@ export async function PUT(req, context) {
 
 export async function DELETE(req, { params }) {
   await connectDB();
-  const { id } = params;
+  const { id } = await params;
 
   const token = req.cookies.get("token")?.value;
   if (!token) {

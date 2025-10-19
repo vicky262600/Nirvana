@@ -96,7 +96,8 @@ export default function AccountPage() {
 
   const getReturnableItems = (order) => {
     const existingRequests = returnRequests.filter(req => {
-      // Handle both populated objects and string IDs
+      // Handle both populated objects and string IDs, with null check
+      if (!req.orderId) return false;
       const requestOrderId = req.orderId._id || req.orderId;
       return requestOrderId === order._id;
     });
@@ -127,6 +128,7 @@ export default function AccountPage() {
 
   const isItemRequestedForReturn = (order, item) => {
     const existingRequests = returnRequests.filter(req => {
+      if (!req.orderId) return false;
       const requestOrderId = req.orderId._id || req.orderId;
       return requestOrderId === order._id;
     });
@@ -148,6 +150,7 @@ export default function AccountPage() {
 
   const getRefundInfo = (order, item) => {
     const existingRequests = returnRequests.filter(req => {
+      if (!req.orderId) return false;
       const requestOrderId = req.orderId._id || req.orderId;
       return requestOrderId === order._id;
     });

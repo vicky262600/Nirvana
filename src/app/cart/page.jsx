@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/header/Header";
 import { Footer } from "@/components/footer/Footer";
 import { useDispatch, useSelector } from "react-redux";
@@ -23,10 +24,50 @@ const CartContent = () => {
   const total = useSelector(selectCartTotal);
 
   const { currency, rate } = useSelector((state) => state.currency);
+  
+  // State to track available quantities for each item
+  const [availableQuantities, setAvailableQuantities] = useState({});
 
+  // Fetch available quantities for all items when component mounts
+  useEffect(() => {
+    const fetchAvailableQuantities = async () => {
+      const quantities = {};
+      
+      for (const item of items) {
+        try {
+          const res = await fetch(`/api/products/${item.productId}`);
+          if (res.ok) {
+            const product = await res.json();
+            const variant = product.variants?.find(v => 
+              v.size === item.selectedSize && v.color === item.selectedColor
+            );
+            quantities[`${item.productId}-${item.selectedSize}-${item.selectedColor}`] = variant?.quantity || 0;
+          }
+        } catch (error) {
+          console.error(`Error fetching availability for ${item.name}:`, error);
+          quantities[`${item.productId}-${item.selectedSize}-${item.selectedColor}`] = 0;
+        }
+      }
+      
+      setAvailableQuantities(quantities);
+    };
 
-  const handleUpdateQuantity = (item, newQuantity) => {
+    if (items.length > 0) {
+      fetchAvailableQuantities();
+    }
+  }, [items]);
+
+  const handleUpdateQuantity = async (item, newQuantity) => {
     if (newQuantity < 1) return;
+    
+    const itemKey = `${item.productId}-${item.selectedSize}-${item.selectedColor}`;
+    const availableQuantity = availableQuantities[itemKey] || 0;
+    
+    if (newQuantity > availableQuantity) {
+      alert(`Only ${availableQuantity} items available in selected size and color.`);
+      return;
+    }
+    
     dispatch(updateCartProduct({
       productId: item.productId,
       oldSize: item.selectedSize,
@@ -112,12 +153,16 @@ const CartContent = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            disabled={item.selectedQuantity >= (availableQuantities[`${item.productId}-${item.selectedSize}-${item.selectedColor}`] || 0)}
                             onClick={() =>
                               handleUpdateQuantity(item, item.selectedQuantity + 1)
                             }
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Available: {availableQuantities[`${item.productId}-${item.selectedSize}-${item.selectedColor}`] || 'Loading...'}
                         </div>
                         <Button
                           variant="ghost"

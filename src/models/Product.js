@@ -18,14 +18,17 @@ const ProductSchema = new mongoose.Schema(
     categories: { type: [String], default: [] },
     price: { type: Number, required: true },
     isOnSale: { type: Boolean, default: false },
-    isNew: { type: Boolean, default: false },
+    isNewProduct: { type: Boolean, default: false }, // Renamed from 'isNew' to avoid reserved keyword
     salePrice: { type: Number, default: 0 },
     variants: {
       type: [VariantSchema],
       required: true,
     },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    suppressReservedKeysWarning: true // Suppress the warning about reserved keywords
+  }
 );
 
 export default mongoose.models.Product || mongoose.model("Product", ProductSchema);

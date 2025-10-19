@@ -92,6 +92,14 @@ export async function POST(req) {
         })
       );
 
+      // Calculate total weight and height based on quantity
+      // Each sweatshirt weighs 680g and has height of 2.5 inches
+      const sweatshirtWeightPerUnit = 680; // grams
+      const sweatshirtHeightPerUnit = 2.5; // inches
+      const totalQuantity = enrichedItems.reduce((total, item) => total + item.selectedQuantity, 0);
+      const totalWeight = totalQuantity * sweatshirtWeightPerUnit;
+      const totalHeight = totalQuantity * sweatshirtHeightPerUnit;
+
       // Prepare Stallion shipment payload
       const shipmentPayload = {
         to_address: {
@@ -117,13 +125,13 @@ export async function POST(req) {
           is_residential: true,
         },
         is_return: false,
-        weight_unit: "lbs",
-        weight: 2, // TODO: calculate from cart items if needed
-        length: 30,
+        weight_unit: "g",
+        weight: totalWeight, // calculated weight based on quantity
+        length: 16,
         width: 20,
-        height: 5,
-        size_unit: "cm",
-        items: enrichedItems.map((item) => ({
+        height: totalHeight, // calculated height based on quantity
+        size_unit: "in",
+        items: enrichedItems.map((item) => ({ 
           description: item.title,
           sku: item.productId,
           quantity: item.selectedQuantity,

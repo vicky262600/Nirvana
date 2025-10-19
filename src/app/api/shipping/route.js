@@ -8,6 +8,14 @@ export async function POST(req) {
     // Extract destination & line_items from request
     const { destination, line_items } = body;
 
+    // Calculate total weight and height based on quantity
+    // Each sweatshirt weighs 680g and has height of 2.5 inches
+    const sweatshirtWeightPerUnit = 680; // grams
+    const sweatshirtHeightPerUnit = 2.5; // inches
+    const totalQuantity = line_items.reduce((total, item) => total + item.quantity, 0);
+    const totalWeight = totalQuantity * sweatshirtWeightPerUnit;
+    const totalHeight = totalQuantity * sweatshirtHeightPerUnit;
+
     // Build Stallion Express API payload:
     const stallionPayload = {
       to_address: {
@@ -24,12 +32,12 @@ export async function POST(req) {
         is_residential: true,
       },
       is_return: false,
-      weight_unit: "lbs",
-      weight: 2, // example weight calculation
-      length: 30,
+      weight_unit: "g",
+      weight: totalWeight, // calculated weight based on quantity
+      length: 16,
       width: 20,
-      height: 5,
-      size_unit: "cm",
+      height: totalHeight, // calculated height based on quantity
+      size_unit: "in",
       items: line_items.map(item => ({
         description: item.description,
         sku: "SKU123",
