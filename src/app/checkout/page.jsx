@@ -163,6 +163,8 @@
     useEffect(() => {
       if (!formData.zipCode || !formData.city || !formData.state || items.length === 0) {
         setShippingCost(null);
+        setShippingRates([]);
+        setSelectedRate(null);
         return;
       }
 
@@ -196,6 +198,8 @@
 
           if (!res.ok) {
             setShippingCost(null);
+            setShippingRates([]);
+            setSelectedRate(null);
             return;
           }
 
@@ -208,11 +212,14 @@
             }
           } else {
             setShippingRates([]);
+            setSelectedRate(null);
             setShippingCost(null);
           }
 
         } catch {
           setShippingCost(null);
+          setShippingRates([]);
+          setSelectedRate(null);
         } finally {
           setLoadingShipping(false);
         }
@@ -465,6 +472,15 @@
                     {loadingShipping ? 'Calculating...' : shippingCost !== null ? `${currencySymbols[currency]}${shippingCostConverted.toFixed(2)}` : 'N/A'}
                   </span>
                 </div>
+
+                {/* International shipping message */}
+                {formData.country && formData.country.toUpperCase() !== 'CA' && formData.country.toUpperCase() !== 'US' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-blue-800">
+                      <span className="font-medium">International Shipping:</span> If your address is not available for shipment here or you're not satisfied with the shipping cost, please DM us on Instagram for alternative shipping options.
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex justify-between">
                   <span>Tax ({(taxRate*100).toFixed(2)}%)</span>

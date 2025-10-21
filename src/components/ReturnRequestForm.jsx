@@ -107,21 +107,35 @@ const ReturnRequestForm = ({ order, userId, onClose, onSuccess }) => {
           alert('Return request submitted successfully!');
         }
       } else {
+        let errorMessage = 'Failed to submit return request';
+        
         try {
-          const error = await response.json();
-          console.error('Return request failed:', error);
+          const errorText = await response.text();
+          console.error('Return request failed - raw response:', errorText);
           
-          // Handle specific error cases
-          if (error.error === "Some items have already been requested for return") {
-            const duplicateItemsList = error.duplicateItems.join(', ');
-            alert(`The following items have already been requested for return: ${duplicateItemsList}. Please remove these items from your return request.`);
-          } else {
-            alert(error.message || error.error || 'Failed to submit return request');
+          if (errorText) {
+            try {
+              const error = JSON.parse(errorText);
+              console.error('Return request failed - parsed error:', error);
+              
+              // Handle specific error cases
+              if (error.error === "Some items have already been requested for return") {
+                const duplicateItemsList = error.duplicateItems ? error.duplicateItems.join(', ') : 'unknown items';
+                errorMessage = `The following items have already been requested for return: ${duplicateItemsList}. Please remove these items from your return request.`;
+              } else {
+                errorMessage = error.message || error.error || error.details || 'Failed to submit return request';
+              }
+            } catch (jsonParseError) {
+              console.error('Error parsing error response as JSON:', jsonParseError);
+              errorMessage = errorText || 'Failed to submit return request';
+            }
           }
-        } catch (parseError) {
-          console.error('Error parsing error response:', parseError);
-          alert('Failed to submit return request');
+        } catch (textParseError) {
+          console.error('Error reading error response:', textParseError);
+          errorMessage = `Server error (${response.status}): ${response.statusText}`;
         }
+        
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Return request error:', error);

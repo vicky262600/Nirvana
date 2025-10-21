@@ -90,9 +90,9 @@ const CartContent = () => {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white flex flex-col">
         <Header />
-        <main className="container mx-auto px-4 py-16 text-center">
+        <main className="container mx-auto px-4 py-16 text-center flex-1">
           <h1 className="text-3xl font-bold mb-4">Your Cart is Empty</h1>
           <p className="text-gray-600 mb-8">Add some items to get started!</p>
           <Link href="/">
@@ -110,9 +110,9 @@ const CartContent = () => {
   
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-1">
         <h1 className="text-3xl font-bold mb-8">Shopping Cart ({items.length} items)</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -123,13 +123,15 @@ const CartContent = () => {
                   key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                   className="bg-white border rounded-lg p-6"
                 >
-                  <div className="flex gap-4">
-                    <img
-                      src={item.images[0]}
-                      alt={item.name}
-                      className="w-24 h-24 object-cover rounded-md"
-                    />
-                    <div className="flex-1">
+                  <div className="flex gap-2">
+                    <Link href={`/product/${item.productId}`}>
+                      <img
+                        src={item.images[0]}
+                        alt={item.name}
+                        className="w-20 h-20 object-cover rounded-md flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                      />
+                    </Link>
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg">{item.name}</h3>
                       <p className="text-gray-600">{item.category}</p>
                       {item.selectedSize && (
@@ -173,8 +175,8 @@ const CartContent = () => {
                         </Button>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-lg">
+                    <div className="text-right w-20 flex-shrink-0">
+                      <p className="font-bold text-base">
                       {currencySymbols[currency]}{(item.price * rate * item.selectedQuantity).toFixed(2)}
                       </p>
                       <p className="text-sm text-gray-600">{currencySymbols[currency]}{(item.price * rate).toFixed(2)} each</p>

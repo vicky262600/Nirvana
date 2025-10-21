@@ -187,6 +187,14 @@ export async function POST(req) {
       // Delete the return request since Stallion failed
       await ReturnRequest.findByIdAndDelete(request._id);
       
+      console.error('Stallion API call failed:', stallionError);
+      console.error('Stallion error details:', {
+        status: stallionError?.response?.status,
+        statusText: stallionError?.response?.statusText,
+        data: stallionError?.response?.data,
+        message: stallionError?.message
+      });
+      
       const errorMessage = stallionError?.response?.data?.message || 
                           stallionError?.response?.data?.error || 
                           stallionError?.message || 
@@ -194,14 +202,31 @@ export async function POST(req) {
       
       return new Response(JSON.stringify({ 
         error: "Return request failed", 
-        details: errorMessage 
-      }), { status: 500 });
+        details: errorMessage,
+        stallionError: stallionError?.response?.data || stallionError?.message
+      }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     return new Response(JSON.stringify({ success: true, request }), { status: 201 });
   } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: "Failed to create return request" }), { status: 500 });
+    console.error('Return request creation error:', err);
+    console.error('Error details:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+    
+    const errorMessage = err.message || "Failed to create return request";
+    return new Response(JSON.stringify({ 
+      error: "Failed to create return request",
+      details: errorMessage 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
@@ -220,7 +245,20 @@ export async function GET(req) {
     const requests = await ReturnRequest.find(query).populate("orderId userId");
     return new Response(JSON.stringify({ requests }), { status: 200 });
   } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: "Failed to fetch requests" }), { status: 500 });
+    console.error('Error fetching return requests:', err);
+    console.error('Error details:', {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    });
+    
+    const errorMessage = err.message || "Failed to fetch requests";
+    return new Response(JSON.stringify({ 
+      error: "Failed to fetch requests",
+      details: errorMessage 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
