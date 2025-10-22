@@ -90,8 +90,8 @@ export async function POST(req) {
   payment_method_types: ["card"],
   line_items,
   mode: "payment",
-  success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-  cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout`,
+  success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://nirvana-five-nu.vercel.app'}/success?session_id={CHECKOUT_SESSION_ID}`,
+  cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://nirvana-five-nu.vercel.app'}/checkout`,
   customer_email: shipping.email,
   metadata: {
     shippingName: `${shipping.firstName} ${shipping.lastName}`,
