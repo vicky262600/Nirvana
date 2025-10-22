@@ -7,9 +7,7 @@ const dbConnect = async () => {
 
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      dbName: "your_db_name", // optional: specify if you don't use it in URI
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      dbName: "nirvana_ecom", // Updated database name
     });
 
     isConnected = true;

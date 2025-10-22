@@ -16,11 +16,16 @@ export const config = {
 };
 
 export async function POST(req) {
+  console.log('=== WEBHOOK CALLED ===');
   console.log('Webhook received:', req.method, req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
   
   const buf = await req.arrayBuffer();
   const rawBody = Buffer.from(buf);
   const sig = req.headers.get("stripe-signature");
+  
+  console.log('Raw body length:', rawBody.length);
+  console.log('Stripe signature:', sig ? 'Present' : 'Missing');
 
   let event;
 
@@ -36,8 +41,11 @@ export async function POST(req) {
   }
 
   console.log('Processing webhook event:', event.type);
+  console.log('Event ID:', event.id);
+  console.log('Event data:', JSON.stringify(event.data, null, 2));
   
   if (event.type === "checkout.session.completed") {
+    console.log('=== PROCESSING CHECKOUT SESSION COMPLETED ===');
     const session = event.data.object;
     let dbSession = null; // Declare outside try block
 
