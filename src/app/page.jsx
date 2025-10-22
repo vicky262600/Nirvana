@@ -3,7 +3,7 @@ import Slider from "@/components/slider/Slider"
 // import ProductCard from "@/components/productCard/ProductCard"
 import { Header } from "@/components/header/Header"
 // import { products } from "@/data/products"
-import ProductGrid from "@/components/productGrid/ProductGrid"
+// import ProductGrid from "@/components/productGrid/ProductGrid"
 
 export default function Home() {
   return (
@@ -18,7 +18,11 @@ export default function Home() {
           ))}
         </div>
       </main> */}
-      <ProductGrid/>
+      {/* Temporarily disabled ProductGrid to test deployment */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h2 className="text-2xl font-semibold mb-6 text-center">Products Coming Soon</h2>
+        <p className="text-center text-gray-600">ProductGrid temporarily disabled for deployment testing</p>
+      </div>
       <Footer />
     </>
   )

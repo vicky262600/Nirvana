@@ -96,7 +96,9 @@ import { detectCurrency } from '@/redux/currencySlice';
 import { useEffect } from 'react';
 // import { PersistGate } from 'redux-persist/integration/react'; // ✅ import this
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
@@ -117,11 +119,17 @@ export default function RootLayout({ children }) {
       <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           {/* <PersistGate loading={null} persistor={persistor}> */}
-            <Elements stripe={stripePromise}>
+            {stripePromise ? (
+              <Elements stripe={stripePromise}>
+                <CurrencyDetectorWrapper>
+                  {children}
+                </CurrencyDetectorWrapper>
+              </Elements>
+            ) : (
               <CurrencyDetectorWrapper>
                 {children}
               </CurrencyDetectorWrapper>
-            </Elements>
+            )}
           {/* </PersistGate> */}
         </Providers>
       </body>
