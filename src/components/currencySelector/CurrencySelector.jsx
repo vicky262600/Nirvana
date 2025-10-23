@@ -34,7 +34,7 @@ const CurrencySelector = () => {
     <select
       value={currency}
       onChange={handleChange}
-      className="border rounded px-2 py-1 text-sm"
+      className="border rounded px-1 py-1 text-xs sm:px-2 sm:text-sm"
     >
       <option value="USD">USD</option>
       <option value="CAD">CAD</option>

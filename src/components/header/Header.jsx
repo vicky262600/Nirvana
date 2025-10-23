@@ -43,13 +43,13 @@ export const Header = () => {
           {/* Center - Brand */}
           <Link
             href="/"
-            className="absolute left-1/2 transform -translate-x-1/2 text-2xl font-bold text-black hover:text-gray-700 transition-colors"
+            className="absolute left-1/2 transform -translate-x-1/2 text-lg sm:text-xl md:text-2xl font-bold text-black hover:text-gray-700 transition-colors z-10"
           >
             EMBROSOUL
           </Link>
 
           {/* Right - Account & Cart */}
-          <div className="flex items-center space-x-2 md:space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
             {/* Hide User icon on mobile, show only on md+ */}
             <Link href={user ? "/account" : "/login"} className="hidden md:block">
               <Button variant="ghost" size="sm">
@@ -59,9 +59,9 @@ export const Header = () => {
 
             <Link href="/cart" className="relative">
               <Button variant="ghost" size="sm">
-                <ShoppingBag className="h-5 w-5" />
+                <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
                     {itemCount}
                   </span>
                 )}
@@ -92,6 +92,7 @@ export const Header = () => {
                   Account
                 </Button>
               </Link>
+
             </nav>
           </div>
         )}
