@@ -64,7 +64,7 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="max-w-md w-full bg-white p-8 rounded-lg shadow-md"
         >
-          <h1 className="text-3xl font-semibold mb-6 text-center">Login</h1>
+          <h1 className="text-3xl font-semibold mb-6 text-center">Login first, please</h1>
 
           <label className="block mb-4">
             <span className="block mb-1 font-medium">Email</span>
