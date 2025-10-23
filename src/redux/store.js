@@ -193,7 +193,7 @@ const storage = createStorage();
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["cart", "user"], // Only persist cart and user, not currency
+  whitelist: ["cart", "user", "currency"], // Persist cart, user, and currency
 };
 
 // Combine reducers

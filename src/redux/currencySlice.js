@@ -2,39 +2,45 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 // Async thunk to fetch country and currency
 export const detectCurrency = createAsyncThunk("currency/detect", async () => {
-  // Step 1: Detect country
-  const ipRes = await fetch("http://ip-api.com/json");
-  const ipData = await ipRes.json();
-  const country = ipData?.country;
+  try {
+    // Step 1: Detect country
+    const ipRes = await fetch("http://ip-api.com/json");
+    const ipData = await ipRes.json();
+    const country = ipData?.country;
 
-  // Step 2: Get live exchange rate from open.er-api.com (USD base)
-  const rateRes = await fetch("https://open.er-api.com/v6/latest/USD");
-  const rateData = await rateRes.json();
+    // Step 2: Get live exchange rate from open.er-api.com (USD base)
+    const rateRes = await fetch("https://open.er-api.com/v6/latest/USD");
+    const rateData = await rateRes.json();
 
-  // USD → CAD rate from API
-  const usdToCad = rateData?.rates?.["CAD"] ?? 1;
+    // USD → CAD rate from API
+    const usdToCad = rateData?.rates?.["CAD"] ?? 1;
 
-  let currency, rate;
+    let currency, rate;
 
-  if (country === "Canada") {
-    currency = "CAD";
-    rate = 1; // No conversion needed, prices already in CAD
-  } else {
-    currency = "USD";
-    rate = 1 / usdToCad; // Convert CAD prices to USD
+    if (country === "Canada") {
+      currency = "CAD";
+      rate = 1; // No conversion needed, prices already in CAD
+    } else {
+      currency = "USD";
+      rate = 1 / usdToCad; // Convert CAD prices to USD
+    }
+
+    console.log("COUNTRY:", country);
+    console.log("CURRENCY:", currency);
+    console.log("RATE:", rate);
+
+    return { currency, rate };
+  } catch (error) {
+    console.error("Currency detection failed:", error);
+    // Fallback to CAD since prices are in CAD
+    return { currency: "CAD", rate: 1 };
   }
-
-  console.log("COUNTRY:", country);
-  console.log("CURRENCY:", currency);
-  console.log("RATE:", rate);
-
-  return { currency, rate };
 });
 
 const currencySlice = createSlice({
   name: "currency",
   initialState: {
-    currency: "USD",
+    currency: "CAD", // Default to CAD since prices are in CAD
     rate: 1,
     status: "idle",
   },
