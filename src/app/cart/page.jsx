@@ -123,12 +123,12 @@ const CartContent = () => {
                   key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
                   className="bg-white border rounded-lg p-6"
                 >
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 sm:gap-4">
                     <Link href={`/product/${item.productId}`}>
                       <img
                         src={item.images[0]}
                         alt={item.name}
-                        className="w-20 h-20 object-cover rounded-md flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                        className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                       />
                     </Link>
                     <div className="flex-1 min-w-0">
@@ -140,11 +140,12 @@ const CartContent = () => {
                       {item.selectedColor && (
                         <p className="text-sm text-gray-500">Color: {item.selectedColor}</p>
                       )}
-                      <div className="flex items-center gap-4 mt-4">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 sm:gap-4 mt-4">
+                        <div className="flex items-center gap-1 sm:gap-2">
                           <Button
                             variant="outline"
                             size="sm"
+                            className="min-h-[44px] min-w-[44px] touch-manipulation"
                             onClick={() =>
                               handleUpdateQuantity(item, item.selectedQuantity - 1)
                             }
@@ -155,6 +156,7 @@ const CartContent = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="min-h-[44px] min-w-[44px] touch-manipulation"
                             disabled={item.selectedQuantity >= (availableQuantities[`${item.productId}-${item.selectedSize}-${item.selectedColor}`] || 0)}
                             onClick={() =>
                               handleUpdateQuantity(item, item.selectedQuantity + 1)
@@ -163,20 +165,20 @@ const CartContent = () => {
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-sm font-medium bg-transparent hover:bg-red-50 active:bg-red-100 transition-colors border-none cursor-pointer touch-manipulation relative z-10"
                           onClick={() => handleRemoveItem(item)}
+                          type="button"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </button>
                       </div>
                     </div>
-                    <div className="text-right w-20 flex-shrink-0">
-                      <p className="font-bold text-base">
+                    <div className="text-right w-20 sm:w-24 flex-shrink-0">
+                      <p className="font-bold text-sm sm:text-base">
                       {currencySymbols[currency]}{(item.price * rate * item.selectedQuantity).toFixed(2)}
                       </p>
-                      <p className="text-sm text-gray-600">{currencySymbols[currency]}{(item.price * rate).toFixed(2)} each</p>
+                      <p className="text-xs sm:text-sm text-gray-600">{currencySymbols[currency]}{(item.price * rate).toFixed(2)} each</p>
                     </div>
                   </div>
                 </div>
