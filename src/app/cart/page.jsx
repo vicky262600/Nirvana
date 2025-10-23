@@ -163,9 +163,6 @@ const CartContent = () => {
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          Available: {availableQuantities[`${item.productId}-${item.selectedSize}-${item.selectedColor}`] || 'Loading...'}
-                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
