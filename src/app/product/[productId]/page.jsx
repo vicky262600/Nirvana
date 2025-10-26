@@ -325,22 +325,22 @@ const ProductDetail = () => {
               <div className="flex items-center gap-3">
                 <Truck className="h-5 w-5 text-gray-600" />
                 <div>
-                  <p className="font-medium text-sm">Free Shipping</p>
-                  <p className="text-xs text-gray-600">On orders over $100</p>
+                  <p className="font-medium text-sm">Worldwide Shipping</p>
+                  <p className="text-xs text-gray-600">We ship everywhere</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <RotateCcw className="h-5 w-5 text-gray-600" />
                 <div>
                   <p className="font-medium text-sm">Easy Returns</p>
-                  <p className="text-xs text-gray-600">30-day return policy</p>
+                  <p className="text-xs text-gray-600">13-day return policy</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Shield className="h-5 w-5 text-gray-600" />
                 <div>
                   <p className="font-medium text-sm">Secure Payment</p>
-                  <p className="text-xs text-gray-600">SSL encrypted</p>
+                  <p className="text-xs text-gray-600">SSL encrypted with Stripe</p>
                 </div>
               </div>
             </div>
