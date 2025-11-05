@@ -22,7 +22,7 @@ export async function POST(req) {
         name: destination.first_name + ' ' + destination.last_name,
         company: null,
         address1: destination.address,
-        address2: null,
+        address2: destination.address2 || null,
         city: destination.city,
         province_code: destination.province_code,
         postal_code: destination.postal_code,

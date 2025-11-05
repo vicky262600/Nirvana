@@ -30,6 +30,7 @@
     firstName: '',
     lastName: '',
     address: '',
+    address2: '',
     city: '',
     state: '',
     zipCode: '',
@@ -185,6 +186,7 @@
             body: JSON.stringify({
               destination: {
                 address: formData.address,
+                address2: formData.address2 || null,
                 city: formData.city,
                 province_code: formData.state,
                 postal_code: formData.zipCode,
@@ -367,6 +369,17 @@
                     value={formData.address}
                     onChange={(e) => handleInputChange('address', e.target.value)}
                     required
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 font-medium">Apartment, suite, etc. (optional)</label>
+                  <input
+                    type="text"
+                    placeholder="Apartment number, suite, etc."
+                    className="w-full border border-gray-300 px-4 py-2 rounded"
+                    value={formData.address2}
+                    onChange={(e) => handleInputChange('address2', e.target.value)}
                   />
                 </div>
 

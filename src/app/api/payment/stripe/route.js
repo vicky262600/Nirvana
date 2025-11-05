@@ -12,6 +12,7 @@ export async function POST(req) {
   try {
     const { items, currency, shipping } = await req.json();
     console.log("Backend received:", { items, currency, shipping });
+    console.log("Shipping address2:", shipping?.address2);
 
     // 1️⃣ Inventory check
     const productIds = items.map(item => item.productId);
@@ -96,6 +97,7 @@ export async function POST(req) {
   metadata: {
     shippingName: `${shipping.firstName} ${shipping.lastName}`,
     shippingAddress: shipping.address,
+    ...(shipping.address2?.trim() && { shippingAddress2: shipping.address2.trim() }),
     shippingCity: shipping.city,
     shippingState: shipping.state,
     shippingZip: shipping.zipCode,
@@ -120,6 +122,7 @@ export async function POST(req) {
     metadata: {
       shippingName: `${shipping.firstName} ${shipping.lastName}`,
       shippingAddress: shipping.address,
+      ...(shipping.address2?.trim() && { shippingAddress2: shipping.address2.trim() }),
       shippingCity: shipping.city,
       shippingState: shipping.state,
       shippingZip: shipping.zipCode,

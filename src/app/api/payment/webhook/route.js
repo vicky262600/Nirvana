@@ -109,10 +109,25 @@ export async function POST(req) {
       const totalHeight = totalQuantity * sweatshirtHeightPerUnit;
 
       // Prepare Stallion shipment payload
+      // Convert address2 to string and trim if it exists
+      let address2Value = null;
+      if (session.metadata?.shippingAddress2) {
+        try {
+          const trimmed = String(session.metadata.shippingAddress2).trim();
+          if (trimmed) {
+            address2Value = trimmed;
+          }
+        } catch (e) {
+          console.error('Error processing address2:', e);
+        }
+      }
+      
       const shipmentPayload = {
         to_address: {
           name: session.metadata.shippingName,
           address1: session.metadata.shippingAddress,
+          address2: address2Value,
+          company: null,
           city: session.metadata.shippingCity,
           province_code: session.metadata.shippingState,
           postal_code: session.metadata.shippingZip,
@@ -193,20 +208,30 @@ export async function POST(req) {
       // Debug: Log the session metadata
       console.log('Session metadata:', session.metadata);
       console.log('Session currency:', session.currency);
+      console.log('Shipping address2 from metadata:', session.metadata.shippingAddress2);
+      console.log('Address2 value for DB:', address2Value);
+      
+      // Build shippingInfo object
+      const shippingInfo = {
+        email: session.customer_email,
+        firstName: session.metadata.shippingName?.split(" ")[0] || "",
+        lastName: session.metadata.shippingName?.split(" ")[1] || "",
+        address: session.metadata.shippingAddress,
+        city: session.metadata.shippingCity,
+        state: session.metadata.shippingState,
+        zipCode: session.metadata.shippingZip,
+        country: session.metadata.shippingCountry,
+      };
+      
+      // Only add address2 if it exists and has a value
+      if (address2Value) {
+        shippingInfo.address2 = address2Value;
+      }
       
       // Create order with tracking number and enriched items
       const orderData = {
         userId: session.client_reference_id || session.metadata.userId || null,
-        shippingInfo: {
-          email: session.customer_email,
-          firstName: session.metadata.shippingName?.split(" ")[0] || "",
-          lastName: session.metadata.shippingName?.split(" ")[1] || "",
-          address: session.metadata.shippingAddress,
-          city: session.metadata.shippingCity,
-          state: session.metadata.shippingState,
-          zipCode: session.metadata.shippingZip,
-          country: session.metadata.shippingCountry,
-        },
+        shippingInfo,
         items: enrichedItems,
         tax: Number(session.metadata.tax) || 0,
         currency: (session.metadata.currency || "USD").toUpperCase(),
