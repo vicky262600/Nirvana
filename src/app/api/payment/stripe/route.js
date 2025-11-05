@@ -4,7 +4,7 @@ import connectDB from "@/lib/db";
 import Product from "@/models/Product";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const RESERVATION_DURATION = 6 * 60 * 1000;
+const RESERVATION_DURATION = 3 * 60 * 1000;
 
 export async function POST(req) {
   await connectDB();
