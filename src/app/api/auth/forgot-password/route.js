@@ -44,11 +44,15 @@ export async function POST(req) {
       to: user.email,
       subject: 'Your password reset link',
       html: `
+      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
         <p>Hello,</p>
-        <p>You requested to reset your password. Click the link below to proceed:</p>
+        <p>You have requested a password reset for your Embrosoul account. Click the link below to proceed:</p>
         <a href="${resetLink}" target="_blank">${resetLink}</a>
         <p>This link will expire in 1 hour.</p>
         <p>If you did not request this, please ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <h2 style="text-align: center; color: #ff6f61; font-size: 24px; margin-top: 10px;">EMBROSOUL</h2>
+      </div>
       `,
     });
 
