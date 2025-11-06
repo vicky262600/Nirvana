@@ -40,7 +40,7 @@ export async function POST(req) {
 
   try {
     await resend.emails.send({
-      from: 'embrosoul.ca@gmail.com', // your verified sender
+      from: 'no-reply@embrosoul.com', // your verified sender
       to: user.email,
       subject: 'Your password reset link',
       html: `
