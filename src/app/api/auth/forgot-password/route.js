@@ -36,11 +36,11 @@ export async function POST(req) {
 
   await user.save();
 
-  const resetLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://nirvana-five-nu.vercel.app'}/reset-password?token=${token}`;
+  const resetLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.embrosoul.com/'}/reset-password?token=${token}`;
 
   try {
     await resend.emails.send({
-      from: 'Nirvana <onboarding@resend.dev>', // your verified sender
+      from: 'embrosoul.ca@gmail.com', // your verified sender
       to: user.email,
       subject: 'Your password reset link',
       html: `
