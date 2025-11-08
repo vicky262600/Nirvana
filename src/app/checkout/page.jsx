@@ -396,6 +396,9 @@
 
                 <div>
                   <label className="block mb-1 font-medium">Province / State</label>
+                  <p className="text-sm text-gray-500 mb-2">
+                    Use the two-letter state or province code, e.g. California = CA.
+                  </p>
                   <input
                     type="text"
                     className="w-full border border-gray-300 px-4 py-2 rounded"
@@ -418,6 +421,9 @@
 
                 <div>
                   <label className="block mb-1 font-medium">Country</label>
+                  <p className="text-sm text-gray-500 mb-2">
+                    Use the two-letter country code, e.g. Canada = CA.
+                  </p>
                   <input
                     type="text"
                     className="w-full border border-gray-300 px-4 py-2 rounded"
