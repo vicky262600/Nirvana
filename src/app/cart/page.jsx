@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/header/Header";
 import { Footer } from "@/components/footer/Footer";
 import { useDispatch, useSelector } from "react-redux";
@@ -18,10 +19,12 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 
 const CartContent = () => {
   const dispatch = useDispatch();
+  const router = useRouter();
 
   const items = useSelector(selectCartItems);
   console.log(items);
   const total = useSelector(selectCartTotal);
+  const user = useSelector((state) => state.user.currentUser);
 
   const { currency, rate } = useSelector((state) => state.currency);
   
@@ -216,11 +219,19 @@ const CartContent = () => {
                 <span>{currencySymbols[currency]}{(total * rate * 1.13).toFixed(2)}</span>
               </div>
             </div>
-            <Link href="/checkout">
-              <Button className="w-full" size="lg">
-                Proceed to Checkout
-              </Button>
-            </Link>
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={() => {
+                if (!user) {
+                  router.push('/login?redirect=/cart');
+                } else {
+                  router.push('/checkout');
+                }
+              }}
+            >
+              Proceed to Checkout
+            </Button>
           </div>
         </div>
       </main>
