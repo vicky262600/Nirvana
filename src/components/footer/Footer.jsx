@@ -7,6 +7,9 @@ export const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div>
             <h3 className="text-2xl font-bold mb-4">EMBROSOUL</h3>
+            <p className="text-gray-400 mb-2">
+            For custom embroidery orders, DM us on Instagram.
+            </p>
             <p className="text-gray-400 mb-4">
               Premium fashion for the modern lifestyle. Discover quality, style, and elegance.
             </p>
