@@ -7,20 +7,26 @@ import Cart from "@/models/Cart";
 import { verifyJWT } from "@/lib/auth";
 import mongoose from "mongoose"; 
 
+function noStoreJson(payload, init = {}) {
+  const response = NextResponse.json(payload, init);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  return response;
+}
+
 export async function POST(req) {
   try {
     await connectDB();
     console.log('Database connected successfully');
 
     const token = req.cookies.get("token")?.value;
-    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!token) return noStoreJson({ message: "Unauthorized" }, { status: 401 });
 
     let decoded;
     try {
       decoded = verifyJWT(token);
       console.log('JWT verified for user:', decoded.id);
     } catch {
-      return NextResponse.json({ message: "Invalid token" }, { status: 403 });
+      return noStoreJson({ message: "Invalid token" }, { status: 403 });
     }
 
     const userId = decoded.id;
@@ -223,23 +229,23 @@ export async function GET(req) {
 
   if (userId) {
     if (decoded.id !== userId && !decoded.isAdmin) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+      return noStoreJson({ message: "Forbidden" }, { status: 403 });
     }
     try {
       const orders = await Order.find({ userId, ...searchFilter });
-      return NextResponse.json({ orders });
+      return noStoreJson({ orders });
     } catch (err) {
-      return NextResponse.json({ message: "Failed to fetch orders", error: err.message }, { status: 500 });
+      return noStoreJson({ message: "Failed to fetch orders", error: err.message }, { status: 500 });
     }
   } else {
     if (!decoded.isAdmin) {
-      return NextResponse.json({ message: "Admins only" }, { status: 403 });
+      return noStoreJson({ message: "Admins only" }, { status: 403 });
     }
     try {
       const orders = await Order.find(searchFilter);
-      return NextResponse.json({ orders });
+      return noStoreJson({ orders });
     } catch (err) {
-      return NextResponse.json({ message: "Failed to fetch orders", error: err.message }, { status: 500 });
+      return noStoreJson({ message: "Failed to fetch orders", error: err.message }, { status: 500 });
     }
   }
 }

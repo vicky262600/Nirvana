@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '@/redux/userSlice';
 import { Header } from '@/components/header/Header';
@@ -12,6 +12,7 @@ import SmartImage from '@/components/common/SmartImage';
 
 export default function AccountPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.currentUser);
   const [orders, setOrders] = useState([]);
@@ -20,6 +21,7 @@ export default function AccountPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnRequests, setReturnRequests] = useState([]);
+  const shouldAutoRefreshOrders = searchParams.get('refresh') === '1';
 
   useEffect(() => {
     if (!user) {
@@ -29,7 +31,9 @@ export default function AccountPage() {
 
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`/api/orders?userId=${user._id}`);
+        const res = await fetch(`/api/orders?userId=${user._id}&t=${Date.now()}`, {
+          cache: 'no-store',
+        });
         if (!res.ok) throw new Error('Failed to fetch orders');
 
         const data = await res.json();
@@ -54,7 +58,9 @@ export default function AccountPage() {
 
     const fetchReturnRequests = async () => {
       try {
-        const res = await fetch(`/api/returns?userId=${user._id}`);
+        const res = await fetch(`/api/returns?userId=${user._id}&t=${Date.now()}`, {
+          cache: 'no-store',
+        });
         if (res.ok) {
           const data = await res.json();
           setReturnRequests(data.requests || []);
@@ -66,7 +72,23 @@ export default function AccountPage() {
 
     fetchOrders();
     fetchReturnRequests();
-  }, [user, router]);
+
+    if (shouldAutoRefreshOrders) {
+      const intervalId = setInterval(() => {
+        fetchOrders();
+        fetchReturnRequests();
+      }, 3000);
+
+      const timeoutId = setTimeout(() => {
+        clearInterval(intervalId);
+      }, 30000);
+
+      return () => {
+        clearInterval(intervalId);
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [user, router, shouldAutoRefreshOrders]);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -197,7 +219,9 @@ export default function AccountPage() {
                 setLoading(true);
                 const fetchOrders = async () => {
                   try {
-                    const res = await fetch(`/api/orders?userId=${user._id}`);
+                    const res = await fetch(`/api/orders?userId=${user._id}&t=${Date.now()}`, {
+                      cache: 'no-store',
+                    });
                     if (!res.ok) throw new Error('Failed to fetch orders');
                     const data = await res.json();
                     const sortedOrders = (data.orders || []).sort((a, b) => 
@@ -449,7 +473,9 @@ export default function AccountPage() {
             const refreshData = async () => {
               try {
                 // Refresh orders
-                const ordersRes = await fetch(`/api/orders?userId=${user._id}`);
+                const ordersRes = await fetch(`/api/orders?userId=${user._id}&t=${Date.now()}`, {
+                  cache: 'no-store',
+                });
                 if (ordersRes.ok) {
                   const ordersData = await ordersRes.json();
                   const sortedOrders = (ordersData.orders || []).sort((a, b) => 
@@ -459,7 +485,9 @@ export default function AccountPage() {
                 }
 
                 // Refresh return requests
-                const returnsRes = await fetch(`/api/returns?userId=${user._id}`);
+                const returnsRes = await fetch(`/api/returns?userId=${user._id}&t=${Date.now()}`, {
+                  cache: 'no-store',
+                });
                 if (returnsRes.ok) {
                   const returnsData = await returnsRes.json();
                   setReturnRequests(returnsData.requests || []);
