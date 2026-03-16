@@ -19,6 +19,7 @@
     const [selectedRate, setSelectedRate] = useState(null);
     const router = useRouter();
     const user = useSelector((state) => state.user.currentUser); // adjust based on your slice
+    const resolvedUserId = user?._id || user?.id || null;
 
     const items = useSelector((state) => state.cart.items);
     const { currency, rate } = useSelector((state) => state.currency);
@@ -242,6 +243,11 @@
         router.push("/login?redirect=/checkout");
         return;
       }
+      if (!resolvedUserId) {
+        alert('Please log in again to continue checkout.');
+        router.push("/login?redirect=/checkout");
+        return;
+      }
 
       if (!shippingCost) {
         alert('Sorry, no shipping is available for this address.');
@@ -269,7 +275,7 @@
             shippingCost: shippingCostConverted, // converted shipping
             tax: tax,
             taxRate: taxRate,
-            userId: user._id,
+            userId: resolvedUserId,
             postage_type: selectedRate.postage_type, 
           },
           grandTotal: grandTotal.toFixed(2)

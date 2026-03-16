@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { logoutUser } from '@/redux/userSlice';
+import { logoutUser, setUser } from '@/redux/userSlice';
 import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ export default function AccountPage() {
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.currentUser);
+  const resolvedUserId = user?._id || user?.id || null;
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAllOrders, setShowAllOrders] = useState(false);
@@ -29,9 +30,29 @@ export default function AccountPage() {
       return;
     }
 
+    if (!resolvedUserId) {
+      const syncUserFromToken = async () => {
+        try {
+          const res = await fetch('/api/auth/me', { cache: 'no-store' });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data?.user) {
+            dispatch(setUser(data.user));
+          }
+        } catch (err) {
+          console.error('Failed to sync user from token:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      syncUserFromToken();
+      return;
+    }
+
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`/api/orders?userId=${user._id}&t=${Date.now()}`, {
+        const res = await fetch(`/api/orders?userId=${resolvedUserId}&t=${Date.now()}`, {
           cache: 'no-store',
         });
         if (!res.ok) throw new Error('Failed to fetch orders');
@@ -58,7 +79,7 @@ export default function AccountPage() {
 
     const fetchReturnRequests = async () => {
       try {
-        const res = await fetch(`/api/returns?userId=${user._id}&t=${Date.now()}`, {
+        const res = await fetch(`/api/returns?userId=${resolvedUserId}&t=${Date.now()}`, {
           cache: 'no-store',
         });
         if (res.ok) {
@@ -88,7 +109,7 @@ export default function AccountPage() {
         clearTimeout(timeoutId);
       };
     }
-  }, [user, router, shouldAutoRefreshOrders]);
+  }, [user, resolvedUserId, router, shouldAutoRefreshOrders, dispatch]);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -219,7 +240,7 @@ export default function AccountPage() {
                 setLoading(true);
                 const fetchOrders = async () => {
                   try {
-                    const res = await fetch(`/api/orders?userId=${user._id}&t=${Date.now()}`, {
+                    const res = await fetch(`/api/orders?userId=${resolvedUserId}&t=${Date.now()}`, {
                       cache: 'no-store',
                     });
                     if (!res.ok) throw new Error('Failed to fetch orders');
@@ -463,7 +484,7 @@ export default function AccountPage() {
       {showReturnForm && selectedOrder && (
         <ReturnRequestForm
           order={selectedOrder}
-          userId={user._id}
+          userId={resolvedUserId}
           onClose={() => {
             setShowReturnForm(false);
             setSelectedOrder(null);
@@ -473,7 +494,7 @@ export default function AccountPage() {
             const refreshData = async () => {
               try {
                 // Refresh orders
-                const ordersRes = await fetch(`/api/orders?userId=${user._id}&t=${Date.now()}`, {
+                const ordersRes = await fetch(`/api/orders?userId=${resolvedUserId}&t=${Date.now()}`, {
                   cache: 'no-store',
                 });
                 if (ordersRes.ok) {
@@ -485,7 +506,7 @@ export default function AccountPage() {
                 }
 
                 // Refresh return requests
-                const returnsRes = await fetch(`/api/returns?userId=${user._id}&t=${Date.now()}`, {
+                const returnsRes = await fetch(`/api/returns?userId=${resolvedUserId}&t=${Date.now()}`, {
                   cache: 'no-store',
                 });
                 if (returnsRes.ok) {

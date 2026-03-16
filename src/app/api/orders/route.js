@@ -202,7 +202,9 @@ export async function GET(req) {
   }
 
   const url = new URL(req.url);
-  const userId = url.searchParams.get("userId");
+  const rawUserId = url.searchParams.get("userId");
+  const userId =
+    rawUserId && rawUserId !== "undefined" && rawUserId !== "null" ? rawUserId : null;
   const search = url.searchParams.get("search") || "";
 
   // Build search filter
@@ -227,12 +229,13 @@ export async function GET(req) {
     searchFilter = { $or: orConditions };
   }
 
-  if (userId) {
-    if (decoded.id !== userId && !decoded.isAdmin) {
+  if (userId || !decoded.isAdmin) {
+    const effectiveUserId = userId || decoded.id;
+    if (decoded.id !== effectiveUserId && !decoded.isAdmin) {
       return noStoreJson({ message: "Forbidden" }, { status: 403 });
     }
     try {
-      const orders = await Order.find({ userId, ...searchFilter });
+      const orders = await Order.find({ userId: effectiveUserId, ...searchFilter });
       return noStoreJson({ orders });
     } catch (err) {
       return noStoreJson({ message: "Failed to fetch orders", error: err.message }, { status: 500 });
