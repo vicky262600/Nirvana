@@ -8,6 +8,7 @@ import { Header } from '@/components/header/Header';
 import { Footer } from '@/components/footer/Footer';
 import { Button } from '@/components/ui/button';
 import ReturnRequestForm from '@/components/ReturnRequestForm';
+import SmartImage from '@/components/common/SmartImage';
 
 export default function AccountPage() {
   const router = useRouter();
@@ -269,7 +270,7 @@ export default function AccountPage() {
                   {/* Left side - Product images */}
                   <div className="flex items-center gap-2 overflow-x-auto">
                     {order.items.map((item, idx) => (
-                      <img
+                      <SmartImage
                         key={idx}
                         src={item.image || "/placeholder.png"}
                         alt={item.title || "Product"}

@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
+import SmartImage from '@/components/common/SmartImage';
 
 const ProductCard = ({ product }) => {
   const { currency, rate } = useSelector((state) => state.currency);
@@ -21,9 +22,10 @@ const ProductCard = ({ product }) => {
       className="group block shadow-none hover:shadow-lg transition-shadow bg-white overflow-hidden relative"
     >
       <div className="relative overflow-hidden">
-        <img
-          src={product.images[0]}
+        <SmartImage
+          src={product?.images?.[0]}
           alt={product.title}
+          loading="eager"
           className="w-full h-48 sm:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
         />
 

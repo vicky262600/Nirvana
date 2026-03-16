@@ -5,12 +5,40 @@ import Product from "@/models/Product";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const RESERVATION_DURATION = 3 * 60 * 1000;
+const FALLBACK_PUBLIC_BASE_URL = "https://nirvana-five-nu.vercel.app";
+
+function normalizeBaseUrl(url) {
+  if (!url) return "";
+  return url.replace(/\/+$/, "");
+}
+
+function isNonPublicBaseUrl(url) {
+  return /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(url);
+}
+
+function buildStripeImageUrl(imageUrl, baseUrl) {
+  if (!imageUrl) return null;
+
+  // Stripe servers cannot access localhost URLs.
+  if (!baseUrl || isNonPublicBaseUrl(baseUrl)) {
+    return imageUrl;
+  }
+
+  return `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+}
 
 export async function POST(req) {
   await connectDB();
 
   try {
     const { items, currency, shipping } = await req.json();
+    const configuredBaseUrl = normalizeBaseUrl(
+      process.env.STRIPE_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || ""
+    );
+    const publicBaseUrl = isNonPublicBaseUrl(configuredBaseUrl)
+      ? FALLBACK_PUBLIC_BASE_URL
+      : (configuredBaseUrl || FALLBACK_PUBLIC_BASE_URL);
+
     console.log("Backend received:", { items, currency, shipping });
     console.log("Shipping address2:", shipping?.address2);
 
@@ -44,6 +72,7 @@ export async function POST(req) {
     // 2️⃣ Build line_items with productId + image
     const line_items = items.map(item => {
       const product = products.find(p => p._id.toString() === item.productId);
+      const stripeImageUrl = buildStripeImageUrl(product.images?.[0], publicBaseUrl);
 
       return {
         price_data: {
@@ -51,7 +80,7 @@ export async function POST(req) {
           product_data: {
             name: product.title,
             description: `${item.selectedSize || ''} ${item.selectedColor || ''}`.trim(),
-            images: product.images?.length ? [product.images[0]] : [], // ✅ first image
+            images: stripeImageUrl ? [stripeImageUrl] : [],
           },
           unit_amount: Math.round(Number(item.price) * 100),
         },

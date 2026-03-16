@@ -15,6 +15,7 @@ import {
 } from "@/redux/cartSlice";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2 } from "lucide-react";
+import SmartImage from "@/components/common/SmartImage";
 
 
 const CartContent = () => {
@@ -128,9 +129,10 @@ const CartContent = () => {
                 >
                   <div className="flex gap-2 sm:gap-4">
                     <Link href={`/product/${item.productId}`}>
-                      <img
-                        src={item.images[0]}
+                      <SmartImage
+                        src={item?.images?.[0]}
                         alt={item.name}
+                        loading="eager"
                         className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                       />
                     </Link>

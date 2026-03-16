@@ -116,7 +116,7 @@ function CurrencyDetectorWrapper({ children }) {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${geist.variable} ${geistMono.variable} antialiased`}>
+      <body suppressHydrationWarning className={`${geist.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           {/* <PersistGate loading={null} persistor={persistor}> */}
             {stripePromise ? (

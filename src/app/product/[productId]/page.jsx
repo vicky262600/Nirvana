@@ -24,6 +24,7 @@ import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; 
 import { useSelector } from 'react-redux';
 import ProductDetailSkeleton from '@/components/skeleton/ProductDetailSkeleton';
+import SmartImage from '@/components/common/SmartImage';
 
 
 
@@ -160,9 +161,10 @@ const ProductDetail = () => {
             >
               {product.images.map((img, index) => (
                 <SwiperSlide key={index}>
-                  <img
+                  <SmartImage
                     src={img}
                     alt={`Product ${index + 1}`}
+                    loading="eager"
                     onClick={() => setIsOpen(true)}
                     className="w-full h-96 lg:h-[600px] object-cover cursor-pointer rounded-lg"
                   />
