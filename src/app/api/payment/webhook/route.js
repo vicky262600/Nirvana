@@ -9,12 +9,6 @@ import mongoose from "mongoose";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const config = {
-  api: {
-    bodyParser: false, // required for Stripe webhooks
-  },
-};
-
 export async function POST(req) {
   console.log('=== WEBHOOK CALLED ===');
   console.log('Webhook received:', req.method, req.url);
