@@ -37,7 +37,9 @@ const Slider = () => {
       {/* Center note */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <p className="text-white text-sm md:text-base font-light px-4 text-center max-w-2xl">
-        Each piece is stitched with the rhythm of the earth, letting you carry nature with you.
+        EMBROSOUL is about turning feelings into something you can wear.
+Not loud designs. Not fast fashion.
+Just pieces that mean something, even if only to you.
         </p>
       </div>
     </div>
